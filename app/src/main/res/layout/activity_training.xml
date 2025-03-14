@@ -1,0 +1,104 @@
+<ScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <com.github.mikephil.charting.charts.LineChart
+            android:id="@+id/speedChart"
+            android:layout_width="match_parent"
+            android:layout_height="200dp"
+            android:layout_marginTop="10dp" />
+
+        <TextView
+            android:id="@+id/textSpeed"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/speed_initial_text"
+            android:textSize="20sp"
+            android:layout_gravity="center"/>
+        <TextView
+            android:id="@+id/textMaxSpeed"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/max_speed_initial_text"
+            android:textSize="20sp"
+            android:layout_gravity="center"/>
+        <TextView
+            android:id="@+id/textAvgSpeed"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/avg_speed_initial_text"
+            android:textSize="20sp"
+            android:layout_gravity="center"/>
+
+        <com.github.mikephil.charting.charts.LineChart
+            android:id="@+id/accelerationChart"
+            android:layout_width="match_parent"
+            android:layout_height="200dp"
+            android:layout_marginTop="10dp" />
+
+        <com.github.mikephil.charting.charts.LineChart
+            android:id="@+id/strokeRateChart"
+            android:layout_width="match_parent"
+            android:layout_height="200dp"
+            android:layout_marginTop="10dp" />
+
+
+        <TextView
+            android:id="@+id/textStrokeRate"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/stroke_rate_initial_text"
+            android:textSize="20sp"
+            android:layout_gravity="center"
+            android:layout_marginTop="10dp"/>
+
+        <TextView
+            android:id="@+id/textMaxStrokeRate"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/max_stroke_rate_initial_text"
+            android:textSize="20sp"
+            android:layout_gravity="center"
+            android:layout_marginTop="10dp"/>
+
+        <com.github.mikephil.charting.charts.LineChart
+            android:id="@+id/tiltChart"
+            android:layout_width="match_parent"
+            android:layout_height="200dp"
+            android:layout_marginTop="10dp" />
+
+        <TextView
+            android:id="@+id/textTilt"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/tilt_initial_text"
+            android:textSize="20sp"
+            android:layout_gravity="center"
+            android:layout_marginTop="10dp"/>
+
+        <TextView
+            android:id="@+id/textAvgTilt"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/avg_tilt_initial_text"
+            android:textSize="20sp"
+            android:layout_gravity="center"
+            android:layout_marginTop="10dp"/>
+
+        <Button
+            android:id="@+id/btnStopTraining"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/stop_training"
+            android:layout_gravity="center"
+            android:layout_marginTop="20dp"/>
+    </LinearLayout>
+</ScrollView>
