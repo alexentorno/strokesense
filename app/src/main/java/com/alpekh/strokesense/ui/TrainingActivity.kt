@@ -48,19 +48,19 @@ class TrainingActivity : AppCompatActivity() {
     private lateinit var tiltChart: LineChart
 
     private var maxSpeed = 0f
-    private var totalSpeedSum = 0.0
-    private var speedMeasurements = 0
 
     private val speedHistory = mutableListOf<Float>() // История скоростей
 
     private var startTime: Long = 0L
-    private var lastStrokeTime = 0L
     private var strokeCount = 0
     private var minValidStrokes = 3 // Минимальное количество гребков перед началом подсчёта SPM
 
-
     private val strokeTimestamps = mutableListOf<Long>() // История ударов
     private var maxSPM = 0 // Максимальный SPM
+    private var smoothedSPM = 0.0
+    private val smoothingFactor = 0.9 // Чем меньше, тем сильнее сглаживание
+    private val strokeWindow = 10000 // 10 секунд в миллисекундах
+    private val accelerationBuffer = ArrayDeque<Float>(5) // Буфер последних значений
 
     private var tiltAngle = 0f // Текущий угол наклона (Roll)
     private var lastGyroTime = System.currentTimeMillis()
@@ -214,40 +214,53 @@ class TrainingActivity : AppCompatActivity() {
     }
 
     private fun processAccelerometerData(values: FloatArray) {
-        val forwardAcceleration = values[1] // Ось Y (вдоль лодки)
+        val forwardAcceleration = values[1]
 
-        val threshold = 2.5f // Порог срабатывания удара
-        val minInterval = 200 // Минимальное время между ударами (мс) (было 300)
+        // Обновляем буфер
+        if (accelerationBuffer.size >= 5) {
+            accelerationBuffer.removeFirst()
+        }
+        accelerationBuffer.add(forwardAcceleration)
+
+        // Усредняем
+        val avgAcceleration = accelerationBuffer.average().toFloat()
+
+        val threshold = 3f
+        val minInterval = 300 // 300 мс между гребками (200 ударов в минуту)
 
         val currentTime = System.currentTimeMillis()
 
-        if (kotlin.math.abs(forwardAcceleration) > threshold) {
+        if (kotlin.math.abs(avgAcceleration) > threshold) {
             if (strokeTimestamps.isEmpty() || (currentTime - strokeTimestamps.last()) > minInterval) {
                 strokeTimestamps.add(currentTime)
+                strokeTimestamps.removeAll { it < currentTime - strokeWindow }
 
-                // Удаляем устаревшие гребки (старше 60 секунд)
-                strokeTimestamps.removeAll { it < currentTime - 60000 }
-
-                // Начинаем считать SPM только после minValidStrokes гребков
                 if (strokeTimestamps.size >= minValidStrokes) {
-                    val strokeRate = (strokeTimestamps.size * 60).toDouble() / (currentTime - strokeTimestamps.first()) * 1000
-
-                    // Обновляем максимальный SPM
-                    if (strokeRate > maxSPM) {
-                        maxSPM = strokeRate.toInt()
-                    }
-
-                    // Обновляем UI
+                    val strokeRate = calculateSPM()
                     findViewById<TextView>(R.id.textStrokeRate).text = "Stroke Rate: %.1f spm".format(strokeRate)
-                    findViewById<TextView>(R.id.textMaxStrokeRate).text = "Max Stroke Rate: $maxSPM spm"
-
-                    // Обновляем график ускорения и SPM
-                    updateChart(accelerationChart, forwardAcceleration)
-                    updateChart(strokeRateChart, strokeRate.toFloat()) // Добавляем график SPM
+                    updateChart(strokeRateChart, strokeRate.toFloat())
                 }
             }
         }
     }
+
+
+    private fun calculateSPM(): Double {
+        val strokesMade = strokeTimestamps.size
+        val avgStrokeTime = if (strokesMade > 1) {
+            (strokeTimestamps.last() - strokeTimestamps.first()) / (strokesMade - 1).toDouble()
+        } else {
+            strokeWindow.toDouble()
+        }
+
+        val strokeRate = (60_000 / avgStrokeTime) // Пересчет в удары/мин
+
+        // Сглаживание
+        smoothedSPM = (strokeRate * smoothingFactor) + (smoothedSPM * (1 - smoothingFactor))
+
+        return smoothedSPM
+    }
+
 
 
     private fun processGyroscopeData(values: FloatArray) {
