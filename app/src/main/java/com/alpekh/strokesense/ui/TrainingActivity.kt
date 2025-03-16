@@ -14,10 +14,12 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.alpekh.strokesense.R
 import android.location.Location
-import android.os.DropBoxManager
 import android.os.Looper
 import android.widget.Button
 import android.widget.TextView
+import androidx.activity.viewModels
+import com.alpekh.strokesense.model.TrainingSession
+import com.alpekh.strokesense.viewmodel.TrainingViewModel
 import com.github.mikephil.charting.charts.LineChart
 import com.github.mikephil.charting.data.Entry
 import com.github.mikephil.charting.data.LineData
@@ -28,7 +30,6 @@ import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
-import kotlin.math.atan2
 
 
 class TrainingActivity : AppCompatActivity() {
@@ -63,6 +64,8 @@ class TrainingActivity : AppCompatActivity() {
     private val accelerationBuffer = ArrayDeque<Float>(5) // Буфер последних значений
 
     private var tiltAngle = 0f // Текущий угол наклона (Roll)
+    private var avgTiltAngle = 0f // Средний угол наклона
+
     private var lastGyroTime = System.currentTimeMillis()
 
     private var totalTiltSum = 0f // Сумма всех измеренных углов
@@ -155,6 +158,7 @@ class TrainingActivity : AppCompatActivity() {
         // Обнуляем средний наклон
         totalTiltSum = 0f
         tiltMeasurements = 0
+        avgTiltAngle = 0f
 
         strokeTimestamps.clear()
         maxSPM = 0
@@ -179,6 +183,19 @@ class TrainingActivity : AppCompatActivity() {
     }
 
     private fun stopTraining() {
+        val viewModel: TrainingViewModel by viewModels()
+
+        val session = TrainingSession(
+            startTime = System.currentTimeMillis(),
+            endTime = System.currentTimeMillis() + 3600000,
+            maxSpeed = maxSpeed,
+            avgSpeed = 10.2f,
+            maxSPM = maxSPM,
+            avgSPM = 65,
+            avgTilt = avgTiltAngle
+        )
+
+        viewModel.saveTraining(session)
         finish() // Закрывает текущую активность и возвращает на предыдущую
     }
 
@@ -277,7 +294,7 @@ class TrainingActivity : AppCompatActivity() {
         // Обновляем средний угол
         totalTiltSum += tiltAngle
         tiltMeasurements++
-        val avgTiltAngle = totalTiltSum / tiltMeasurements
+        avgTiltAngle = totalTiltSum / tiltMeasurements
 
         // Обновляем UI
         findViewById<TextView>(R.id.textTilt).text = "Tilt: %.1f°".format(tiltAngle)

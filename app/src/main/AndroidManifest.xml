@@ -27,6 +27,8 @@
             </intent-filter>
         </activity>
         <activity android:name=".ui.TrainingActivity"/>
+        <activity android:name=".ui.TrainingHistoryActivity"/>
+        <activity android:name=".ui.TrainingDetailActivity"/>
 
     </application>
 

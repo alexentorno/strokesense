@@ -1,7 +1,9 @@
 <resources>
     <string name="app_name">StrokeSense</string>
     <string name="welcome">Welcome to StrokeSense</string>
+    <string name="training_history_title">Training History</string>
     <string name="start_training">Start Training</string>
+    <string name="view_training_history">View History</string>
     <string name="stop_training">Stop Training</string>
     <string name="max_speed_initial_text">Max Speed: 0 km/h</string>
     <string name="avg_speed_initial_text">Avg Speed: 0 km/h</string>
