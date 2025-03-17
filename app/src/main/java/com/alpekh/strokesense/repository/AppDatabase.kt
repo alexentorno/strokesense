@@ -1,12 +1,14 @@
 package com.alpekh.strokesense.repository
 
-import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.room.TypeConverters
+import android.content.Context
 import com.alpekh.strokesense.model.TrainingSession
 
-@Database(entities = [TrainingSession::class], version = 2)
+@Database(entities = [TrainingSession::class], version = 3)
+@TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun trainingSessionDao(): TrainingSessionDao
 
@@ -20,10 +22,12 @@ abstract class AppDatabase : RoomDatabase() {
                     context.applicationContext,
                     AppDatabase::class.java,
                     "stroke_sense_db"
-                ).build()
+                ).fallbackToDestructiveMigration()  // Удаляет старую БД при изменении схемы
+                    .build()
                 INSTANCE = instance
                 instance
             }
         }
     }
 }
+

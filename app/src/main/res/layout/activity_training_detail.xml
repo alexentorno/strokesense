@@ -3,37 +3,75 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:padding="16dp">
+    android:padding="24dp"
+    android:background="?attr/backgroundColor">
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Training Details"
-        android:textSize="20sp"
-        android:textStyle="bold"
-        android:layout_gravity="center"/>
+        android:textSize="28sp"
+        android:fontFamily="@font/righteous_regular"
+        android:textColor="?attr/colorPrimary"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginBottom="24dp"/>
 
     <TextView
         android:id="@+id/textViewSpeed"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Max Speed:"
-        android:textSize="16sp"
-        android:layout_marginTop="16dp"/>
+        android:textSize="20sp"
+        android:fontFamily="@font/sofia_sans_bold"
+        android:textColor="?attr/colorSecondary"
+        android:layout_marginBottom="16dp"/>
 
     <TextView
         android:id="@+id/textViewSPM"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Max Stroke Rate:"
-        android:textSize="16sp"
-        android:layout_marginTop="8dp"/>
+        android:textSize="20sp"
+        android:fontFamily="@font/sofia_sans_bold"
+        android:textColor="?attr/colorSecondary"
+        android:layout_marginBottom="16dp"/>
 
     <TextView
         android:id="@+id/textViewTilt"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Avg Tilt Angle:"
-        android:textSize="16sp"
-        android:layout_marginTop="8dp"/>
+        android:textSize="20sp"
+        android:fontFamily="@font/sofia_sans_bold"
+        android:textColor="?attr/colorSecondary"
+        android:layout_marginBottom="28dp"/>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Charts"
+        android:textSize="28sp"
+        android:fontFamily="@font/righteous_regular"
+        android:textColor="?attr/colorPrimary"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginBottom="24dp"/>
+
+    <com.github.mikephil.charting.charts.LineChart
+        android:id="@+id/speedChart"
+        android:layout_width="match_parent"
+        android:layout_height="200dp"
+        android:layout_marginBottom="16dp"/>
+
+    <com.github.mikephil.charting.charts.LineChart
+        android:id="@+id/accelerationChart"
+        android:layout_width="match_parent"
+        android:layout_height="200dp"
+        android:layout_marginBottom="16dp"/>
+
+    <com.github.mikephil.charting.charts.LineChart
+        android:id="@+id/tiltChart"
+        android:layout_width="match_parent"
+        android:layout_height="200dp"/>
+
+
 </LinearLayout>

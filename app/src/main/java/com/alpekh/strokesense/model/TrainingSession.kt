@@ -2,8 +2,11 @@ package com.alpekh.strokesense.model
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import androidx.room.TypeConverters
+import com.alpekh.strokesense.repository.Converters
 
 @Entity(tableName = "training_sessions")
+@TypeConverters(Converters::class)  // Конвертер для хранения списков в БД
 data class TrainingSession(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
     val startTime: Long,   // Время начала
@@ -12,5 +15,9 @@ data class TrainingSession(
     val avgSpeed: Float,   // Средняя скорость (км/ч)
     val maxSPM: Int,       // Максимальный SPM
     val avgSPM: Int,       // Средний SPM
-    val avgTilt: Float     // Максимальный угол наклона (градусы)
+    val avgTilt: Float,    // Средний угол наклона (градусы)
+
+    val speedGraph: List<Float>,    // Данные графика скорости
+    val accelerationGraph: List<Float>, // Данные графика ускорения
+    val tiltGraph: List<Float>      // Данные графика наклона
 )

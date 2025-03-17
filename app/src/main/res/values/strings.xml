@@ -5,6 +5,12 @@
     <string name="start_training">Start Training</string>
     <string name="view_training_history">View History</string>
     <string name="stop_training">Stop Training</string>
+    <string name="speed">Speed</string>
+    <string name="acceleration">Acceleration</string>
+    <string name="stroke_rate">Stroke Rate</string>
+    <string name="tilt">Tilt</string>
+    <string name="training_date">Training Date</string>
+    <string name="delete_session">Delete Training Session</string>
     <string name="max_speed_initial_text">Max Speed: 0 km/h</string>
     <string name="avg_speed_initial_text">Avg Speed: 0 km/h</string>
     <string name="speed_initial_text">Speed: 0 km/h</string>
@@ -12,4 +18,9 @@
     <string name="stroke_rate_initial_text">Stroke Rate: 0 spm</string>
     <string name="tilt_initial_text">Tilt: 0°</string>
     <string name="avg_tilt_initial_text">Avg Tilt: 0°</string>
+
+    <string name="delete_training">Delete Training</string>
+    <string name="confirm_delete_training">Are you sure you want to delete this training session?</string>
+    <string name="delete">Delete</string>
+    <string name="cancel">Cancel</string>
 </resources>

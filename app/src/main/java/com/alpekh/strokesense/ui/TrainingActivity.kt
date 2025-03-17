@@ -19,6 +19,7 @@ import android.widget.Button
 import android.widget.TextView
 import androidx.activity.viewModels
 import com.alpekh.strokesense.model.TrainingSession
+import com.alpekh.strokesense.repository.Converters
 import com.alpekh.strokesense.viewmodel.TrainingViewModel
 import com.github.mikephil.charting.charts.LineChart
 import com.github.mikephil.charting.data.Entry
@@ -192,7 +193,10 @@ class TrainingActivity : AppCompatActivity() {
             avgSpeed = 10.2f,
             maxSPM = maxSPM,
             avgSPM = 65,
-            avgTilt = avgTiltAngle
+            avgTilt = avgTiltAngle,
+            accelerationGraph = extractChartData(accelerationChart), // Добавьте сюда график ускорения
+            speedGraph = extractChartData(speedChart), // График скорости
+            tiltGraph = extractChartData(tiltChart) // График наклона
         )
 
         viewModel.saveTraining(session)
@@ -322,5 +326,11 @@ class TrainingActivity : AppCompatActivity() {
         chart.notifyDataSetChanged()
         chart.invalidate()
     }
+
+    private fun extractChartData(chart: LineChart): List<Float> {
+        val dataSet = chart.data?.getDataSetByIndex(0) as? LineDataSet
+        return dataSet?.values?.map { it.y } ?: emptyList()
+    }
+
 
 }

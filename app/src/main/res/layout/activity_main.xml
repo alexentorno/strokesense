@@ -4,29 +4,56 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
+    android:padding="24dp"
+    android:background="?attr/backgroundColor"
     tools:context=".ui.MainActivity">
 
     <TextView
         android:id="@+id/textTitle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:gravity="center"
+        android:layout_marginTop="10dp"
+        android:fontFamily="@font/righteous_regular"
         android:text="@string/welcome"
-        android:textSize="24sp"
-        android:textStyle="bold"
-        android:layout_gravity="center"
-        android:padding="16dp"/>
+        android:textColor="?attr/colorPrimary"
+        android:textSize="40sp" />
+
+    <View
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
 
     <Button
         android:id="@+id/btnStartTraining"
-        android:layout_width="wrap_content"
+        android:layout_width="250dp"
         android:layout_height="wrap_content"
         android:text="@string/start_training"
-        android:layout_gravity="center"/>
+        android:textSize="20sp"
+        android:textColor="?attr/backgroundColor"
+        android:fontFamily="@font/sofia_sans_bold"
+        android:backgroundTint="@color/light_blue"
+        android:layout_marginBottom="16dp"
+        android:paddingVertical="12dp"
+        android:layout_gravity="center_horizontal"
+        android:stateListAnimator="@null"/>
 
     <Button
         android:id="@+id/btnTrainingHistory"
-        android:layout_width="wrap_content"
+        android:layout_width="250dp"
         android:layout_height="wrap_content"
         android:text="@string/view_training_history"
-        android:layout_gravity="center"/>
+        android:textSize="20sp"
+        android:fontFamily="@font/sofia_sans_bold"
+        android:textColor="?attr/colorSecondary"
+        android:backgroundTint="?attr/backgroundColor"
+        android:paddingVertical="12dp"
+        android:layout_gravity="center_horizontal"
+        android:stateListAnimator="@null"/>
+
+    <View
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
 </LinearLayout>

@@ -14,6 +14,9 @@ interface TrainingSessionDao {
     @Query("SELECT * FROM training_sessions ORDER BY startTime DESC")
     suspend fun getAllSessions(): List<TrainingSession>
 
-    @Query("DELETE FROM training_sessions")
-    suspend fun clearAllSessions()
+    @Query("SELECT * FROM training_sessions WHERE id = :sessionId")
+    suspend fun getSessionById(sessionId: Int): TrainingSession?
+
+    @Query("DELETE FROM training_sessions WHERE id = :sessionId")
+    suspend fun deleteSession(sessionId: Int)
 }

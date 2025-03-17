@@ -23,4 +23,11 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
             callback(sessions)
         }
     }
+
+    fun deleteTraining(session: TrainingSession, callback: () -> Unit) {
+        viewModelScope.launch {
+            trainingDao.deleteSession(session.id)
+            callback() // Обновл UI после удаления
+        }
+    }
 }

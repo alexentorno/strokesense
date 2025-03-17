@@ -5,14 +5,8 @@ import android.widget.Button
 import androidx.appcompat.app.AppCompatActivity
 import com.alpekh.strokesense.R
 import android.content.Intent
-import android.util.Log
-import androidx.activity.viewModels
-import com.alpekh.strokesense.model.TrainingSession
-import com.alpekh.strokesense.viewmodel.TrainingViewModel
 
 class MainActivity : AppCompatActivity() {
-
-    private val viewModel: TrainingViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -30,10 +24,5 @@ class MainActivity : AppCompatActivity() {
             startActivity(intent)
         }
 
-        viewModel.getTrainings { sessions ->
-            for (trainingSession: TrainingSession in sessions) {
-                Log.d("Training", "Тренировка ${trainingSession.id}: Макс. скорость = ${trainingSession.maxSpeed} км/ч")
-            }
-        }
     }
 }
