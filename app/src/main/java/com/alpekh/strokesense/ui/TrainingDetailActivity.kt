@@ -27,7 +27,7 @@ class TrainingDetailActivity : AppCompatActivity() {
         viewModel.getTrainings { sessions ->
             val session = sessions.find { it.id == sessionId }
             session?.let {
-                findViewById<TextView>(R.id.textViewSpeed).text = "Max Speed: ${it.maxSpeed} km/h"
+                findViewById<TextView>(R.id.textViewSpeed).text = "Max Speed: %.1f km/h".format(it.maxSpeed)
                 findViewById<TextView>(R.id.textViewSPM).text = "Max Stroke Rate: ${it.maxSPM}"
                 findViewById<TextView>(R.id.textViewTilt).text = "Avg Tilt Angle: ${it.avgTilt}°"
 

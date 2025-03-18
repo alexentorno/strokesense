@@ -19,18 +19,21 @@ import android.widget.Button
 import android.widget.TextView
 import androidx.activity.viewModels
 import com.alpekh.strokesense.model.TrainingSession
-import com.alpekh.strokesense.repository.Converters
 import com.alpekh.strokesense.viewmodel.TrainingViewModel
 import com.github.mikephil.charting.charts.LineChart
 import com.github.mikephil.charting.data.Entry
 import com.github.mikephil.charting.data.LineData
 import com.github.mikephil.charting.data.LineDataSet
+import com.github.mikephil.charting.formatter.ValueFormatter
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
+import java.text.SimpleDateFormat
+import java.util.Locale
+import kotlin.math.atan2
 
 
 class TrainingActivity : AppCompatActivity() {
@@ -78,7 +81,10 @@ class TrainingActivity : AppCompatActivity() {
             event?.let {
                 when (it.sensor.type) {
                     Sensor.TYPE_GYROSCOPE -> processGyroscopeData(it.values)
-                    Sensor.TYPE_ACCELEROMETER -> processAccelerometerData(it.values)
+                    Sensor.TYPE_ACCELEROMETER -> {
+                        processAccelerometerData(it.values)
+//                        processGyroscopeData(it.values)
+                    }
                 }
             }
         }
@@ -91,13 +97,11 @@ class TrainingActivity : AppCompatActivity() {
         setContentView(R.layout.activity_training)
 
         speedChart = findViewById(R.id.speedChart)
-        accelerationChart = findViewById(R.id.accelerationChart)
         tiltChart = findViewById(R.id.tiltChart)
         strokeRateChart = findViewById(R.id.strokeRateChart)
 
         setupChart(strokeRateChart)
         setupChart(speedChart)
-        setupChart(accelerationChart)
         setupChart(tiltChart)
 
         findViewById<Button>(R.id.btnStopTraining).setOnClickListener {
@@ -125,6 +129,15 @@ class TrainingActivity : AppCompatActivity() {
         chart.legend.isEnabled = true
         chart.legend.textSize = 12f
         chart.legend.formSize = 10f
+
+        chart.xAxis.valueFormatter = object : ValueFormatter() {
+            override fun getFormattedValue(value: Float): String {
+                val seconds = value.toLong()
+                val minutes = seconds / 60
+                val remainingSeconds = seconds % 60
+                return String.format("%02d:%02d", minutes, remainingSeconds)
+            }
+        }
     }
 
     override fun onDestroy() {
@@ -160,7 +173,6 @@ class TrainingActivity : AppCompatActivity() {
         totalTiltSum = 0f
         tiltMeasurements = 0
         avgTiltAngle = 0f
-
         strokeTimestamps.clear()
         maxSPM = 0
     }
@@ -197,6 +209,7 @@ class TrainingActivity : AppCompatActivity() {
             accelerationGraph = extractChartData(accelerationChart), // Добавьте сюда график ускорения
             speedGraph = extractChartData(speedChart), // График скорости
             tiltGraph = extractChartData(tiltChart) // График наклона
+            //TODO избавиться от ненужных полей
         )
 
         viewModel.saveTraining(session)
@@ -219,19 +232,19 @@ class TrainingActivity : AppCompatActivity() {
         speedHistory.add(speedKmh)
 
         // Рассчитываем среднюю скорость
-        val avgSpeed = speedHistory.average().toFloat()
+        val speed = speedHistory.average().toFloat()
 
         // Обновляем максимальную скорость
-        if (avgSpeed > maxSpeed) {
-            maxSpeed = avgSpeed
+        if (speed > maxSpeed) {
+            maxSpeed = speed
         }
 
         // Обновляем UI
-        findViewById<TextView>(R.id.textSpeed).text = "Speed: %.1f km/h".format(avgSpeed)
+        findViewById<TextView>(R.id.textSpeed).text = "Speed: %.1f km/h".format(speed)
         findViewById<TextView>(R.id.textMaxSpeed).text = "Max Speed: %.1f km/h".format(maxSpeed)
 
         // Обновляем график скорости
-        updateChart(speedChart, avgSpeed)
+        updateChart(speedChart, speed)
     }
 
     private fun processAccelerometerData(values: FloatArray) {
@@ -282,18 +295,17 @@ class TrainingActivity : AppCompatActivity() {
         return smoothedSPM
     }
 
-
-
     private fun processGyroscopeData(values: FloatArray) {
+        val gyroX = values[1] // Вращение вокруг горизонтальной оси
         val currentTime = System.currentTimeMillis()
-        val deltaTime = (currentTime - lastGyroTime) / 1000.0f // Время между измерениями (в секундах)
+        val deltaTime = (currentTime - lastGyroTime) / 1000f // Время в секундах
         lastGyroTime = currentTime
 
-        val angularVelocityX = values[1] // Гироскоп вокруг X (Roll)
-
         // Интегрируем угловую скорость, чтобы получить угол
-        tiltAngle += angularVelocityX * deltaTime * (180f / Math.PI.toFloat()) // В градусы
-        tiltAngle = tiltAngle.coerceIn(-45f, 45f) // Ограничиваем диапазон
+        tiltAngle += gyroX * deltaTime * 57.3f // Перевод радиан в градусы
+
+        // Фильтруем мелкие колебания
+        tiltAngle = (tiltAngle * 0.9f) + (gyroX * deltaTime * 0.1f)
 
         // Обновляем средний угол
         totalTiltSum += tiltAngle
@@ -321,11 +333,15 @@ class TrainingActivity : AppCompatActivity() {
             chart.data.addDataSet(newDataSet)
             newDataSet
         }
-        chart.data.addEntry(Entry(chart.data.entryCount.toFloat(), value), 0)
+
+        val elapsedTime = (System.currentTimeMillis() - startTime) / 1000f // Time in seconds
+        chart.data.addEntry(Entry(elapsedTime, value), 0)
+
         chart.data.notifyDataChanged()
         chart.notifyDataSetChanged()
         chart.invalidate()
     }
+
 
     private fun extractChartData(chart: LineChart): List<Float> {
         val dataSet = chart.data?.getDataSetByIndex(0) as? LineDataSet
