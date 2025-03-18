@@ -7,7 +7,7 @@ import androidx.room.TypeConverters
 import android.content.Context
 import com.alpekh.strokesense.model.TrainingSession
 
-@Database(entities = [TrainingSession::class], version = 3)
+@Database(entities = [TrainingSession::class], version = 4)
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun trainingSessionDao(): TrainingSessionDao

@@ -40,6 +40,17 @@
             android:layout_marginBottom="8dp"/>
 
         <TextView
+            android:id="@+id/textAvgSpeed"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/avg_speed_initial_text"
+            android:textSize="20sp"
+            android:fontFamily="@font/sofia_sans_bold"
+            android:textColor="?attr/colorSecondary"
+            android:layout_gravity="center"
+            android:layout_marginBottom="8dp"/>
+
+        <TextView
             android:id="@+id/textMaxSpeed"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"

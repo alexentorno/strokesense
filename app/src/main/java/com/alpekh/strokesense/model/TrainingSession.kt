@@ -14,10 +14,9 @@ data class TrainingSession(
     val maxSpeed: Float,   // Максимальная скорость (км/ч)
     val avgSpeed: Float,   // Средняя скорость (км/ч)
     val maxSPM: Int,       // Максимальный SPM
-    val avgSPM: Int,       // Средний SPM
     val avgTilt: Float,    // Средний угол наклона (градусы)
 
-    val speedGraph: List<Float>,    // Данные графика скорости
-    val accelerationGraph: List<Float>, // Данные графика ускорения
-    val tiltGraph: List<Float>      // Данные графика наклона
+    val speedChart: List<Float>,    // Данные графика скорости
+    val SPMChart: List<Float>, // Данные графика ускорения
+    val tiltChart: List<Float>      // Данные графика наклона
 )

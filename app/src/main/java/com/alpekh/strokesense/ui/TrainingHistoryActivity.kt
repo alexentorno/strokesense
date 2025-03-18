@@ -2,6 +2,7 @@ package com.alpekh.strokesense.ui
 
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.viewModels
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
@@ -39,6 +40,7 @@ class TrainingHistoryActivity : AppCompatActivity() {
 
         viewModel.getTrainings { sessions ->
             adapter.submitList(sessions)
+            Log.d("TrainingHistoryActivity", "Trainings loaded: ${sessions.size}")
         }
     }
 

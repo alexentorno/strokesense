@@ -1,6 +1,7 @@
 package com.alpekh.strokesense.viewmodel
 
 import android.app.Application
+import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.alpekh.strokesense.model.TrainingSession
@@ -14,6 +15,7 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
     fun saveTraining(session: TrainingSession) {
         viewModelScope.launch {
             trainingDao.insertSession(session)
+            Log.d("TrainingViewModel", "Training saved: $session")
         }
     }
 

@@ -31,9 +31,7 @@ import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
-import java.text.SimpleDateFormat
 import java.util.Locale
-import kotlin.math.atan2
 
 
 class TrainingActivity : AppCompatActivity() {
@@ -47,12 +45,13 @@ class TrainingActivity : AppCompatActivity() {
     private var gyroscope: Sensor? = null
 
     private lateinit var speedChart: LineChart
-    private lateinit var accelerationChart: LineChart
     private lateinit var strokeRateChart: LineChart
-
     private lateinit var tiltChart: LineChart
 
     private var maxSpeed = 0f
+    private var totalSpeed = 0f
+    private var avgSpeed = 0f
+    private var speedCount = 0
 
     private val speedHistory = mutableListOf<Float>() // История скоростей
 
@@ -135,7 +134,7 @@ class TrainingActivity : AppCompatActivity() {
                 val seconds = value.toLong()
                 val minutes = seconds / 60
                 val remainingSeconds = seconds % 60
-                return String.format("%02d:%02d", minutes, remainingSeconds)
+                return String.format(Locale.US, "%02d:%02d", minutes, remainingSeconds)
             }
         }
     }
@@ -195,6 +194,10 @@ class TrainingActivity : AppCompatActivity() {
         }
     }
 
+    private fun floatRound(value: Float): Float {
+        return "%.1f".format(value).toFloat()
+    }
+
     private fun stopTraining() {
         val viewModel: TrainingViewModel by viewModels()
 
@@ -202,20 +205,17 @@ class TrainingActivity : AppCompatActivity() {
             startTime = System.currentTimeMillis(),
             endTime = System.currentTimeMillis() + 3600000,
             maxSpeed = maxSpeed,
-            avgSpeed = 10.2f,
+            avgSpeed = avgSpeed,
             maxSPM = maxSPM,
-            avgSPM = 65,
             avgTilt = avgTiltAngle,
-            accelerationGraph = extractChartData(accelerationChart), // Добавьте сюда график ускорения
-            speedGraph = extractChartData(speedChart), // График скорости
-            tiltGraph = extractChartData(tiltChart) // График наклона
-            //TODO избавиться от ненужных полей
+            SPMChart = extractChartData(strokeRateChart), // Добавьте сюда график ускорения
+            speedChart = extractChartData(speedChart), // График скорости
+            tiltChart = extractChartData(tiltChart) // График наклона
         )
 
         viewModel.saveTraining(session)
         finish() // Закрывает текущую активность и возвращает на предыдущую
     }
-
 
     private fun updateSpeed(location: Location) {
         val speedKmh = location.speed * 3.6f // м/с → км/ч
@@ -225,26 +225,29 @@ class TrainingActivity : AppCompatActivity() {
             return
         }
 
-        // Ограничиваем историю до 5 последних значений (скользящее среднее)
-        if (speedHistory.size >= 5) {
+        // Ограничиваем историю до 10 последних значений (скользящее среднее)
+        if (speedHistory.size >= 10) {
             speedHistory.removeAt(0)
         }
         speedHistory.add(speedKmh)
 
         // Рассчитываем среднюю скорость
-        val speed = speedHistory.average().toFloat()
+        totalSpeed += speedKmh
+        speedCount++
+        avgSpeed = totalSpeed / speedCount
 
         // Обновляем максимальную скорость
-        if (speed > maxSpeed) {
-            maxSpeed = speed
+        if (speedKmh > maxSpeed) {
+            maxSpeed = speedKmh
         }
 
         // Обновляем UI
-        findViewById<TextView>(R.id.textSpeed).text = "Speed: %.1f km/h".format(speed)
+        findViewById<TextView>(R.id.textSpeed).text = "Speed: %.1f km/h".format(speedKmh)
+        findViewById<TextView>(R.id.textAvgSpeed).text = "Avg Speed: %.1f km/h".format(avgSpeed)
         findViewById<TextView>(R.id.textMaxSpeed).text = "Max Speed: %.1f km/h".format(maxSpeed)
 
         // Обновляем график скорости
-        updateChart(speedChart, speed)
+        updateChart(speedChart, speedKmh)
     }
 
     private fun processAccelerometerData(values: FloatArray) {
@@ -259,7 +262,7 @@ class TrainingActivity : AppCompatActivity() {
         // Усредняем
         val avgAcceleration = accelerationBuffer.average().toFloat()
 
-        val threshold = 3f
+        val threshold = 5f //TODO: Подобрать оптимальное значение
         val minInterval = 300 // 300 мс между гребками (200 ударов в минуту)
 
         val currentTime = System.currentTimeMillis()
