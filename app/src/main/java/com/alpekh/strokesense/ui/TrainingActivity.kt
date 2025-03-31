@@ -60,7 +60,7 @@ class TrainingActivity : AppCompatActivity() {
     private var minValidStrokes = 3 // Минимальное количество гребков перед началом подсчёта SPM
 
     private val strokeTimestamps = mutableListOf<Long>() // История ударов
-    private var maxSPM = 0 // Максимальный SPM
+    private var maxSPM = 0f // Максимальный SPM
     private var smoothedSPM = 0.0
     private val smoothingFactor = 0.9 // Чем меньше, тем сильнее сглаживание
     private val strokeWindow = 10000 // 10 секунд в миллисекундах
@@ -74,16 +74,16 @@ class TrainingActivity : AppCompatActivity() {
     private var totalTiltSum = 0f // Сумма всех измеренных углов
     private var tiltMeasurements = 0 // Количество измерений угла
 
+    private val speedTimestamps = mutableListOf<Long>()
+    private val SPMTimestamps = mutableListOf<Long>()
+    private val tiltTimestamps = mutableListOf<Long>()
 
     private val sensorEventListener = object : SensorEventListener {
         override fun onSensorChanged(event: SensorEvent?) {
             event?.let {
                 when (it.sensor.type) {
                     Sensor.TYPE_GYROSCOPE -> processGyroscopeData(it.values)
-                    Sensor.TYPE_ACCELEROMETER -> {
-                        processAccelerometerData(it.values)
-//                        processGyroscopeData(it.values)
-                    }
+                    Sensor.TYPE_ACCELEROMETER -> processAccelerometerData(it.values)
                 }
             }
         }
@@ -108,6 +108,7 @@ class TrainingActivity : AppCompatActivity() {
         }
 
         if (checkLocationPermission()) {
+            println("Location permission granted")
             startTraining()
             startTracking()
         }
@@ -141,7 +142,9 @@ class TrainingActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        fusedLocationClient.removeLocationUpdates(locationCallback)
+        if (::fusedLocationClient.isInitialized) {
+            fusedLocationClient.removeLocationUpdates(locationCallback)
+        }
     }
 
     override fun onResume() {
@@ -173,7 +176,7 @@ class TrainingActivity : AppCompatActivity() {
         tiltMeasurements = 0
         avgTiltAngle = 0f
         strokeTimestamps.clear()
-        maxSPM = 0
+        maxSPM = 0f
     }
 
     private fun startTracking() {
@@ -194,36 +197,42 @@ class TrainingActivity : AppCompatActivity() {
         }
     }
 
-    private fun floatRound(value: Float): Float {
-        return "%.1f".format(value).toFloat()
-    }
-
     private fun stopTraining() {
         val viewModel: TrainingViewModel by viewModels()
 
         val session = TrainingSession(
             startTime = System.currentTimeMillis(),
             endTime = System.currentTimeMillis() + 3600000,
-            maxSpeed = maxSpeed,
-            avgSpeed = avgSpeed,
-            maxSPM = maxSPM,
-            avgTilt = avgTiltAngle,
-            SPMChart = extractChartData(strokeRateChart), // Добавьте сюда график ускорения
-            speedChart = extractChartData(speedChart), // График скорости
-            tiltChart = extractChartData(tiltChart) // График наклона
+            maxSpeed = roundToOneDecimal(maxSpeed),
+            avgSpeed = roundToOneDecimal(avgSpeed),
+            maxSPM = roundToOneDecimal(maxSPM),
+            avgTilt = roundToOneDecimal(avgTiltAngle),
+            speedChart = extractChartData(speedChart),
+            SPMChart = extractChartData(strokeRateChart),
+            tiltChart = extractChartData(tiltChart),
+            speedTimestamps = speedTimestamps,
+            SPMTimestamps = SPMTimestamps,
+            tiltTimestamps = tiltTimestamps
         )
 
         viewModel.saveTraining(session)
         finish() // Закрывает текущую активность и возвращает на предыдущую
     }
 
+    private fun roundToOneDecimal(value: Float): Float {
+        return String.format(Locale.US, "%.1f", value).toFloat()
+    }
+
     private fun updateSpeed(location: Location) {
         val speedKmh = location.speed * 3.6f // м/с → км/ч
+        val currentTime = System.currentTimeMillis()
 
         // Фильтрация выбросов: игнорируем, если скорость изменилась слишком резко
         if (speedHistory.isNotEmpty() && kotlin.math.abs(speedKmh - speedHistory.last()) > 10) {
             return
         }
+
+        speedTimestamps.add(currentTime)
 
         // Ограничиваем историю до 10 последних значений (скользящее среднее)
         if (speedHistory.size >= 10) {
@@ -272,17 +281,23 @@ class TrainingActivity : AppCompatActivity() {
                 strokeTimestamps.add(currentTime)
                 strokeTimestamps.removeAll { it < currentTime - strokeWindow }
 
+                SPMTimestamps.add(currentTime)
+
                 if (strokeTimestamps.size >= minValidStrokes) {
                     val strokeRate = calculateSPM()
+                    if (strokeRate > maxSPM) {
+                        maxSPM = strokeRate
+                    }
                     findViewById<TextView>(R.id.textStrokeRate).text = "Stroke Rate: %.1f spm".format(strokeRate)
-                    updateChart(strokeRateChart, strokeRate.toFloat())
+                    findViewById<TextView>(R.id.textMaxStrokeRate).text = "Max Stroke Rate: %.1f spm".format(maxSPM)
+                    updateChart(strokeRateChart, strokeRate)
                 }
             }
         }
     }
 
 
-    private fun calculateSPM(): Double {
+    private fun calculateSPM(): Float {
         val strokesMade = strokeTimestamps.size
         val avgStrokeTime = if (strokesMade > 1) {
             (strokeTimestamps.last() - strokeTimestamps.first()) / (strokesMade - 1).toDouble()
@@ -295,7 +310,7 @@ class TrainingActivity : AppCompatActivity() {
         // Сглаживание
         smoothedSPM = (strokeRate * smoothingFactor) + (smoothedSPM * (1 - smoothingFactor))
 
-        return smoothedSPM
+        return smoothedSPM.toFloat()
     }
 
     private fun processGyroscopeData(values: FloatArray) {
@@ -308,12 +323,14 @@ class TrainingActivity : AppCompatActivity() {
         tiltAngle += gyroX * deltaTime * 57.3f // Перевод радиан в градусы
 
         // Фильтруем мелкие колебания
-        tiltAngle = (tiltAngle * 0.9f) + (gyroX * deltaTime * 0.1f)
+        tiltAngle = (tiltAngle * 0.97f) + (gyroX * deltaTime * 0.1f) //TODO Подобрать оптимальное значение
 
         // Обновляем средний угол
         totalTiltSum += tiltAngle
         tiltMeasurements++
         avgTiltAngle = totalTiltSum / tiltMeasurements
+
+        tiltTimestamps.add(currentTime)
 
         // Обновляем UI
         findViewById<TextView>(R.id.textTilt).text = "Tilt: %.1f°".format(tiltAngle)

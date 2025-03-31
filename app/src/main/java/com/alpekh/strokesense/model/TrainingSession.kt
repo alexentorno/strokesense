@@ -13,10 +13,15 @@ data class TrainingSession(
     val endTime: Long,     // Время окончания
     val maxSpeed: Float,   // Максимальная скорость (км/ч)
     val avgSpeed: Float,   // Средняя скорость (км/ч)
-    val maxSPM: Int,       // Максимальный SPM
+    val maxSPM: Float,       // Максимальный SPM
     val avgTilt: Float,    // Средний угол наклона (градусы)
 
     val speedChart: List<Float>,    // Данные графика скорости
     val SPMChart: List<Float>, // Данные графика ускорения
-    val tiltChart: List<Float>      // Данные графика наклона
+    val tiltChart: List<Float> ,     // Данные графика наклона
+
+    // Временные метки для графиков
+    val speedTimestamps: List<Long>,
+    val SPMTimestamps: List<Long>,
+    val tiltTimestamps: List<Long>
 )

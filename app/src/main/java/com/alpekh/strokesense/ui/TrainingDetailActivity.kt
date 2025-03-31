@@ -40,9 +40,10 @@ class TrainingDetailActivity : AppCompatActivity() {
                 findViewById<TextView>(R.id.textViewTilt).text = "Avg Tilt Angle: ${it.avgTilt}°"
 
                 // Заполнение графиков данными
-                setupChartData(speedChart, it.speedChart, "Speed (km/h)")
-                setupChartData(accelerationChart, it.SPMChart, "Stroke Rate (strokes/min)")
-                setupChartData(tiltChart, it.tiltChart, "Tilt Angle (°)")
+                setupChartData(speedChart, it.speedTimestamps, it.speedChart, "Speed (km/h)")
+                setupChartData(accelerationChart, it.SPMTimestamps, it.SPMChart, "Stroke Rate (strokes/min)")
+                setupChartData(tiltChart, it.tiltTimestamps, it.tiltChart, "Tilt Angle (°)")
+
             }
         }
     }
@@ -68,8 +69,18 @@ class TrainingDetailActivity : AppCompatActivity() {
         }
     }
 
-    private fun setupChartData(chart: LineChart, data: List<Float>, label: String) {
-        val entries = data.mapIndexed { index, value -> Entry(index.toFloat(), value) }
+    private fun setupChartData(chart: LineChart, timestamps: List<Long>, values: List<Float>, label: String) {
+        if (timestamps.isEmpty() || values.isEmpty()) return
+
+        // Определяем минимальную длину списков (IndexOutOfBoundsException)
+        val dataSize = minOf(timestamps.size, values.size)
+
+        val startTime = timestamps.first()
+        val entries = (0 until dataSize).map { index ->
+            val elapsedTime = (timestamps[index] - startTime) / 1000f
+            Entry(elapsedTime, values[index])
+        }
+
         val dataSet = LineDataSet(entries, label).apply {
             color = getColor(R.color.light_blue)
             valueTextColor = getColor(R.color.light_blue)
@@ -79,4 +90,5 @@ class TrainingDetailActivity : AppCompatActivity() {
         chart.data = LineData(dataSet)
         chart.invalidate()
     }
+
 }

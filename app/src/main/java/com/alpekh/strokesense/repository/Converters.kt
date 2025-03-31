@@ -12,4 +12,15 @@ class Converters {
     fun toFloatList(value: String): List<Float> {
         return if (value.isEmpty()) emptyList() else value.split(",").map { it.toFloat() }
     }
+
+    @TypeConverter
+    fun fromLongList(value: List<Long>?): String {
+        return value?.toList()?.joinToString(",") ?: ""
+    }
+
+
+    @TypeConverter
+    fun toLongList(value: String): List<Long> {
+        return if (value.isEmpty()) emptyList() else value.split(",").map { it.toLong() }
+    }
 }
