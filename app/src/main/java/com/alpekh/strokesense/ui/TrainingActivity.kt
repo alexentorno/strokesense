@@ -40,6 +40,14 @@ class TrainingActivity : AppCompatActivity() {
     private lateinit var locationRequest: LocationRequest
     private lateinit var locationCallback: LocationCallback
 
+    private lateinit var textSpeed: TextView
+    private lateinit var textAvgSpeed: TextView
+    private lateinit var textMaxSpeed: TextView
+    private lateinit var textStrokeRate: TextView
+    private lateinit var textMaxStrokeRate: TextView
+    private lateinit var textTilt: TextView
+    private lateinit var textAvgTilt: TextView
+
     private lateinit var sensorManager: SensorManager
     private var accelerometer: Sensor? = null
     private var gyroscope: Sensor? = null
@@ -53,17 +61,16 @@ class TrainingActivity : AppCompatActivity() {
     private var avgSpeed = 0f
     private var speedCount = 0
 
-    private val speedHistory = mutableListOf<Float>() // История скоростей
+    private val speedHistory = mutableListOf<Float>()
 
     private var startTime: Long = 0L
     private var strokeCount = 0
-    private var minValidStrokes = 3 // Минимальное количество гребков перед началом подсчёта SPM
+    private var minValidStrokes = 3 // Минимальное количество гребков перед началом подсчёта
 
-    private val strokeTimestamps = mutableListOf<Long>() // История ударов
-    private var maxSPM = 0f // Максимальный SPM
+    private val strokeTimestamps = mutableListOf<Long>()
+    private var maxSPM = 0f
     private var smoothedSPM = 0.0
-    private val smoothingFactor = 0.9 // Чем меньше, тем сильнее сглаживание
-    private val strokeWindow = 10000 // 10 секунд в миллисекундах
+    private val strokeWindow = 10000
     private val accelerationBuffer = ArrayDeque<Float>(5) // Буфер последних значений
 
     private var tiltAngle = 0f // Текущий угол наклона (Roll)
@@ -75,7 +82,7 @@ class TrainingActivity : AppCompatActivity() {
     private var tiltMeasurements = 0 // Количество измерений угла
 
     private val speedTimestamps = mutableListOf<Long>()
-    private val SPMTimestamps = mutableListOf<Long>()
+    private val strokeRateTimestamps = mutableListOf<Long>()
     private val tiltTimestamps = mutableListOf<Long>()
 
     private val sensorEventListener = object : SensorEventListener {
@@ -99,16 +106,19 @@ class TrainingActivity : AppCompatActivity() {
         tiltChart = findViewById(R.id.tiltChart)
         strokeRateChart = findViewById(R.id.strokeRateChart)
 
-        setupChart(strokeRateChart)
-        setupChart(speedChart)
-        setupChart(tiltChart)
+        textSpeed = findViewById(R.id.textSpeed)
+        textAvgSpeed = findViewById(R.id.textAvgSpeed)
+        textMaxSpeed = findViewById(R.id.textMaxSpeed)
+        textStrokeRate = findViewById(R.id.textStrokeRate)
+        textMaxStrokeRate = findViewById(R.id.textMaxStrokeRate)
+        textTilt = findViewById(R.id.textTilt)
+        textAvgTilt = findViewById(R.id.textAvgTilt)
 
-        findViewById<Button>(R.id.btnStopTraining).setOnClickListener {
-            stopTraining()
-        }
+        listOf(strokeRateChart, speedChart, tiltChart).forEach { setupChart(it) }
+
+        findViewById<Button>(R.id.btnStopTraining).setOnClickListener { stopTraining() }
 
         if (checkLocationPermission()) {
-            println("Location permission granted")
             startTraining()
             startTracking()
         }
@@ -116,26 +126,27 @@ class TrainingActivity : AppCompatActivity() {
         sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
         accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
         gyroscope = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE)
-
     }
 
     private fun setupChart(chart: LineChart) {
-        chart.description.isEnabled = false
-        chart.setTouchEnabled(true)
-        chart.setPinchZoom(true)
-        chart.xAxis.setDrawGridLines(false)
-        chart.axisLeft.setDrawGridLines(false)
-        chart.axisRight.isEnabled = false
-        chart.legend.isEnabled = true
-        chart.legend.textSize = 12f
-        chart.legend.formSize = 10f
-
-        chart.xAxis.valueFormatter = object : ValueFormatter() {
-            override fun getFormattedValue(value: Float): String {
-                val seconds = value.toLong()
-                val minutes = seconds / 60
-                val remainingSeconds = seconds % 60
-                return String.format(Locale.US, "%02d:%02d", minutes, remainingSeconds)
+        chart.apply {
+            description.isEnabled = false
+            setTouchEnabled(true)
+            setPinchZoom(true)
+            xAxis.setDrawGridLines(false)
+            axisLeft.setDrawGridLines(false)
+            axisRight.isEnabled = false
+            legend.apply {
+                isEnabled = true
+                textSize = 12f
+                formSize = 10f
+            }
+            xAxis.valueFormatter = object : ValueFormatter() {
+                override fun getFormattedValue(value: Float): String {
+                    val minutes = (value / 60).toInt()
+                    val seconds = (value % 60).toInt()
+                    return String.format(Locale.US, "%02d:%02d", minutes, seconds)
+                }
             }
         }
     }
@@ -170,8 +181,6 @@ class TrainingActivity : AppCompatActivity() {
     private fun startTraining() {
         strokeCount = 0
         startTime = System.currentTimeMillis()
-
-        // Обнуляем средний наклон
         totalTiltSum = 0f
         tiltMeasurements = 0
         avgTiltAngle = 0f
@@ -202,16 +211,15 @@ class TrainingActivity : AppCompatActivity() {
 
         val session = TrainingSession(
             startTime = System.currentTimeMillis(),
-            endTime = System.currentTimeMillis() + 3600000,
-            maxSpeed = roundToOneDecimal(maxSpeed),
-            avgSpeed = roundToOneDecimal(avgSpeed),
-            maxSPM = roundToOneDecimal(maxSPM),
-            avgTilt = roundToOneDecimal(avgTiltAngle),
+            maxSpeed = maxSpeed,
+            avgSpeed = avgSpeed,
+            maxSPM = maxSPM,
+            avgTilt = avgTiltAngle,
             speedChart = extractChartData(speedChart),
-            SPMChart = extractChartData(strokeRateChart),
+            strokeRateChart = extractChartData(strokeRateChart),
             tiltChart = extractChartData(tiltChart),
             speedTimestamps = speedTimestamps,
-            SPMTimestamps = SPMTimestamps,
+            strokeRateTimestamps = strokeRateTimestamps,
             tiltTimestamps = tiltTimestamps
         )
 
@@ -219,41 +227,30 @@ class TrainingActivity : AppCompatActivity() {
         finish() // Закрывает текущую активность и возвращает на предыдущую
     }
 
-    private fun roundToOneDecimal(value: Float): Float {
-        return String.format(Locale.US, "%.1f", value).toFloat()
-    }
-
     private fun updateSpeed(location: Location) {
-        val speedKmh = location.speed * 3.6f // м/с → км/ч
+        val speedKmh = location.speed * 3.6f // м/с перевод к км/ч
         val currentTime = System.currentTimeMillis()
 
         // Фильтрация выбросов: игнорируем, если скорость изменилась слишком резко
-        if (speedHistory.isNotEmpty() && kotlin.math.abs(speedKmh - speedHistory.last()) > 10) {
-            return
-        }
+        if (speedHistory.isNotEmpty()
+            && kotlin.math.abs(speedKmh - speedHistory.last()) > 10) return
 
         speedTimestamps.add(currentTime)
 
         // Ограничиваем историю до 10 последних значений (скользящее среднее)
-        if (speedHistory.size >= 10) {
-            speedHistory.removeAt(0)
-        }
+        if (speedHistory.size >= 10) speedHistory.removeAt(0)
         speedHistory.add(speedKmh)
 
         // Рассчитываем среднюю скорость
         totalSpeed += speedKmh
         speedCount++
         avgSpeed = totalSpeed / speedCount
-
-        // Обновляем максимальную скорость
-        if (speedKmh > maxSpeed) {
-            maxSpeed = speedKmh
-        }
+        maxSpeed = maxSpeed.coerceAtLeast(speedKmh)
 
         // Обновляем UI
-        findViewById<TextView>(R.id.textSpeed).text = "Speed: %.1f km/h".format(speedKmh)
-        findViewById<TextView>(R.id.textAvgSpeed).text = "Avg Speed: %.1f km/h".format(avgSpeed)
-        findViewById<TextView>(R.id.textMaxSpeed).text = "Max Speed: %.1f km/h".format(maxSpeed)
+        findViewById<TextView>(R.id.textSpeed).text = getString(R.string.speed_text, speedKmh)
+        findViewById<TextView>(R.id.textAvgSpeed).text = getString(R.string.avg_speed_text, avgSpeed)
+        findViewById<TextView>(R.id.textMaxSpeed).text = getString(R.string.max_speed_text, maxSpeed)
 
         // Обновляем график скорости
         updateChart(speedChart, speedKmh)
@@ -271,7 +268,7 @@ class TrainingActivity : AppCompatActivity() {
         // Усредняем
         val avgAcceleration = accelerationBuffer.average().toFloat()
 
-        val threshold = 5f //TODO: Подобрать оптимальное значение
+        val threshold = 2f //TODO: Подобрать оптимальное значение
         val minInterval = 300 // 300 мс между гребками (200 ударов в минуту)
 
         val currentTime = System.currentTimeMillis()
@@ -281,15 +278,15 @@ class TrainingActivity : AppCompatActivity() {
                 strokeTimestamps.add(currentTime)
                 strokeTimestamps.removeAll { it < currentTime - strokeWindow }
 
-                SPMTimestamps.add(currentTime)
+                strokeRateTimestamps.add(currentTime)
 
                 if (strokeTimestamps.size >= minValidStrokes) {
                     val strokeRate = calculateSPM()
                     if (strokeRate > maxSPM) {
                         maxSPM = strokeRate
                     }
-                    findViewById<TextView>(R.id.textStrokeRate).text = "Stroke Rate: %.1f spm".format(strokeRate)
-                    findViewById<TextView>(R.id.textMaxStrokeRate).text = "Max Stroke Rate: %.1f spm".format(maxSPM)
+                    findViewById<TextView>(R.id.textStrokeRate).text = getString(R.string.stroke_rate_text, strokeRate)
+                    findViewById<TextView>(R.id.textMaxStrokeRate).text = getString(R.string.max_stroke_rate_text, maxSPM)
                     updateChart(strokeRateChart, strokeRate)
                 }
             }
@@ -305,7 +302,8 @@ class TrainingActivity : AppCompatActivity() {
             strokeWindow.toDouble()
         }
 
-        val strokeRate = (60_000 / avgStrokeTime) // Пересчет в удары/мин
+        val strokeRate = (60_000 / avgStrokeTime) //удары/мин
+        val smoothingFactor = 0.9 // Чем меньше, тем сильнее сглаживание
 
         // Сглаживание
         smoothedSPM = (strokeRate * smoothingFactor) + (smoothedSPM * (1 - smoothingFactor))
@@ -333,40 +331,29 @@ class TrainingActivity : AppCompatActivity() {
         tiltTimestamps.add(currentTime)
 
         // Обновляем UI
-        findViewById<TextView>(R.id.textTilt).text = "Tilt: %.1f°".format(tiltAngle)
-        findViewById<TextView>(R.id.textAvgTilt).text = "Avg Tilt: %.1f°".format(avgTiltAngle)
+        findViewById<TextView>(R.id.textTilt).text = getString(R.string.tilt_text, tiltAngle)
+        findViewById<TextView>(R.id.textAvgTilt).text = getString(R.string.avg_tilt_text, avgTiltAngle)
 
         updateChart(tiltChart, tiltAngle) // Обновляем график
     }
 
     private fun updateChart(chart: LineChart, value: Float) {
-        if (chart.data == null) {
-            chart.data = LineData()
-        }
-        val dataSet = if (chart.data.dataSetCount > 0) {
-            chart.data.getDataSetByIndex(0) as LineDataSet
-        } else {
-            val newDataSet = LineDataSet(null, "Data").apply {
-                color = Color.BLUE
-                valueTextColor = Color.BLACK
-            }
-            chart.data.addDataSet(newDataSet)
-            newDataSet
+        val elapsedTime = (System.currentTimeMillis() - startTime) / 1000f
+
+        val dataSet = chart.data?.getDataSetByIndex(0) as? LineDataSet ?: LineDataSet(null, "Data").apply {
+            color = Color.BLUE
+            valueTextColor = Color.BLACK
+            chart.data = LineData(this)
         }
 
-        val elapsedTime = (System.currentTimeMillis() - startTime) / 1000f // Time in seconds
-        chart.data.addEntry(Entry(elapsedTime, value), 0)
-
+        dataSet.addEntry(Entry(elapsedTime, value))
         chart.data.notifyDataChanged()
         chart.notifyDataSetChanged()
         chart.invalidate()
     }
 
-
     private fun extractChartData(chart: LineChart): List<Float> {
         val dataSet = chart.data?.getDataSetByIndex(0) as? LineDataSet
         return dataSet?.values?.map { it.y } ?: emptyList()
     }
-
-
 }

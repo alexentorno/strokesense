@@ -34,14 +34,14 @@ class TrainingDetailActivity : AppCompatActivity() {
         viewModel.getTrainings { sessions ->
             val session = sessions.find { it.id == sessionId }
             session?.let {
-                findViewById<TextView>(R.id.textViewMaxSpeed).text = "Max Speed: ${it.maxSpeed} km/h"
-                findViewById<TextView>(R.id.textViewAvgSpeed).text = "Avg Speed: ${it.avgSpeed} km/h"
-                findViewById<TextView>(R.id.textViewSPM).text = "Max Stroke Rate: ${it.maxSPM}"
-                findViewById<TextView>(R.id.textViewTilt).text = "Avg Tilt Angle: ${it.avgTilt}°"
+                findViewById<TextView>(R.id.textViewMaxSpeed).text = getString(R.string.max_speed_text, it.maxSpeed)
+                findViewById<TextView>(R.id.textViewAvgSpeed).text = getString(R.string.avg_speed_text, it.avgSpeed)
+                findViewById<TextView>(R.id.textViewSPM).text = getString(R.string.max_stroke_rate_text, it.maxSPM)
+                findViewById<TextView>(R.id.textViewTilt).text = getString(R.string.avg_tilt_text, it.avgTilt)
 
                 // Заполнение графиков данными
                 setupChartData(speedChart, it.speedTimestamps, it.speedChart, "Speed (km/h)")
-                setupChartData(accelerationChart, it.SPMTimestamps, it.SPMChart, "Stroke Rate (strokes/min)")
+                setupChartData(accelerationChart, it.strokeRateTimestamps, it.strokeRateChart, "Stroke Rate (strokes/min)")
                 setupChartData(tiltChart, it.tiltTimestamps, it.tiltChart, "Tilt Angle (°)")
 
             }

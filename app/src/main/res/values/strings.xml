@@ -25,4 +25,15 @@
     <string name="confirm_delete_training">Are you sure you want to delete this training session?</string>
     <string name="delete">Delete</string>
     <string name="cancel">Cancel</string>
+
+    <string name="speed_text">Speed: %.1f km/h</string>
+    <string name="avg_speed_text">Avg Speed: %.1f km/h</string>
+    <string name="max_speed_text">Max Speed: %.1f km/h</string>
+
+    <string name="stroke_rate_text">Stroke Rate: %.1f spm</string>
+    <string name="max_stroke_rate_text">Max Stroke Rate: %.1f spm</string>
+
+    <string name="tilt_text">Tilt: %.1f°</string>
+    <string name="avg_tilt_text">Avg Tilt: %.1f°</string>
+
 </resources>
