@@ -12,4 +12,9 @@
     <color name="dark_logo_blue">#A7E6FF</color>
     <color name="dark_light_blue">#E0F4FF</color>
     <color name="dark_other_blue">#3ABEF9</color>
+
+    <color name="chart_line_light">@color/light_blue</color>
+    <color name="chart_line_dark">@color/dark_other_blue</color>
+    <color name="chart_text_light">@color/light_blue</color>
+    <color name="chart_text_dark">@color/dark_light_blue</color>
 </resources>

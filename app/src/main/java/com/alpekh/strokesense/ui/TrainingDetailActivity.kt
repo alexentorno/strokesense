@@ -1,6 +1,7 @@
 package com.alpekh.strokesense.ui
 
 import android.os.Bundle
+import android.util.TypedValue
 import android.widget.TextView
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
@@ -16,6 +17,18 @@ import java.util.Locale
 class TrainingDetailActivity : AppCompatActivity() {
 
     private val viewModel: TrainingViewModel by viewModels()
+
+    private val chartLineColor by lazy {
+        val typedValue = TypedValue()
+        theme.resolveAttribute(R.attr.chartLineColor, typedValue, true)
+        typedValue.data
+    }
+
+    private val chartTextColor by lazy {
+        val typedValue = TypedValue()
+        theme.resolveAttribute(R.attr.chartTextColor, typedValue, true)
+        typedValue.data
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -72,22 +85,33 @@ class TrainingDetailActivity : AppCompatActivity() {
     private fun setupChartData(chart: LineChart, timestamps: List<Long>, values: List<Float>, label: String) {
         if (timestamps.isEmpty() || values.isEmpty()) return
 
-        // Определяем минимальную длину списков (IndexOutOfBoundsException)
         val dataSize = minOf(timestamps.size, values.size)
-
         val startTime = timestamps.first()
+
         val entries = (0 until dataSize).map { index ->
             val elapsedTime = (timestamps[index] - startTime) / 1000f
             Entry(elapsedTime, values[index])
         }
 
         val dataSet = LineDataSet(entries, label).apply {
-            color = getColor(R.color.light_blue)
-            valueTextColor = getColor(R.color.light_blue)
+            color = chartLineColor
+            valueTextColor = chartTextColor
             lineWidth = 2f
             setDrawCircles(false)
+            mode = LineDataSet.Mode.LINEAR
+
+            setCircleColor(chartLineColor)
         }
-        chart.data = LineData(dataSet)
+
+        chart.data = LineData(dataSet).apply {
+            setValueTextColor(chartTextColor)
+        }
+
+        // Configure axis colors
+        chart.xAxis.textColor = chartTextColor
+        chart.axisLeft.textColor = chartTextColor
+        chart.legend.textColor = chartTextColor
+
         chart.invalidate()
     }
 

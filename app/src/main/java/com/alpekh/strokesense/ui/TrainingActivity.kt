@@ -3,7 +3,6 @@ package com.alpekh.strokesense.ui
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
-import android.graphics.Color
 import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
@@ -14,17 +13,15 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.alpekh.strokesense.R
 import android.location.Location
+import android.os.Handler
 import android.os.Looper
 import android.widget.Button
 import android.widget.TextView
 import androidx.activity.viewModels
+import com.alpekh.strokesense.helpers.ChartManager
 import com.alpekh.strokesense.model.TrainingSession
 import com.alpekh.strokesense.viewmodel.TrainingViewModel
 import com.github.mikephil.charting.charts.LineChart
-import com.github.mikephil.charting.data.Entry
-import com.github.mikephil.charting.data.LineData
-import com.github.mikephil.charting.data.LineDataSet
-import com.github.mikephil.charting.formatter.ValueFormatter
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest
@@ -33,12 +30,16 @@ import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
 import java.util.Locale
 
-
 class TrainingActivity : AppCompatActivity() {
 
     private lateinit var fusedLocationClient: FusedLocationProviderClient
     private lateinit var locationRequest: LocationRequest
     private lateinit var locationCallback: LocationCallback
+
+    private lateinit var textTrainingTimer: TextView
+    private var timerHandler = Handler(Looper.getMainLooper())
+    private var timerRunnable: Runnable? = null
+    private var trainingDuration = 0L
 
     private lateinit var textSpeed: TextView
     private lateinit var textAvgSpeed: TextView
@@ -55,6 +56,10 @@ class TrainingActivity : AppCompatActivity() {
     private lateinit var speedChart: LineChart
     private lateinit var strokeRateChart: LineChart
     private lateinit var tiltChart: LineChart
+
+    private lateinit var speedChartManager: ChartManager
+    private lateinit var strokeRateChartManager: ChartManager
+    private lateinit var tiltChartManager: ChartManager
 
     private var maxSpeed = 0f
     private var totalSpeed = 0f
@@ -98,6 +103,31 @@ class TrainingActivity : AppCompatActivity() {
         override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
     }
 
+    private fun startTimer() {
+        timerRunnable = object : Runnable {
+            override fun run() {
+                trainingDuration = System.currentTimeMillis() - startTime
+                updateTimerText()
+                timerHandler.postDelayed(this, 1000)
+            }
+        }
+        timerHandler.post(timerRunnable!!)
+    }
+
+    private fun stopTimer() {
+        timerRunnable?.let {
+            timerHandler.removeCallbacks(it)
+        }
+    }
+
+    private fun updateTimerText() {
+        val seconds = (trainingDuration / 1000) % 60
+        val minutes = (trainingDuration / (1000 * 60)) % 60
+        val hours = (trainingDuration / (1000 * 60 * 60))
+
+        textTrainingTimer.text = String.format(Locale.getDefault(), "%02d:%02d:%02d", hours, minutes, seconds)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_training)
@@ -106,6 +136,11 @@ class TrainingActivity : AppCompatActivity() {
         tiltChart = findViewById(R.id.tiltChart)
         strokeRateChart = findViewById(R.id.strokeRateChart)
 
+        speedChartManager = ChartManager(speedChart)
+        strokeRateChartManager = ChartManager(strokeRateChart)
+        tiltChartManager = ChartManager(tiltChart)
+
+        textTrainingTimer = findViewById(R.id.textTrainingTimer)
         textSpeed = findViewById(R.id.textSpeed)
         textAvgSpeed = findViewById(R.id.textAvgSpeed)
         textMaxSpeed = findViewById(R.id.textMaxSpeed)
@@ -113,8 +148,6 @@ class TrainingActivity : AppCompatActivity() {
         textMaxStrokeRate = findViewById(R.id.textMaxStrokeRate)
         textTilt = findViewById(R.id.textTilt)
         textAvgTilt = findViewById(R.id.textAvgTilt)
-
-        listOf(strokeRateChart, speedChart, tiltChart).forEach { setupChart(it) }
 
         findViewById<Button>(R.id.btnStopTraining).setOnClickListener { stopTraining() }
 
@@ -128,34 +161,12 @@ class TrainingActivity : AppCompatActivity() {
         gyroscope = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE)
     }
 
-    private fun setupChart(chart: LineChart) {
-        chart.apply {
-            description.isEnabled = false
-            setTouchEnabled(true)
-            setPinchZoom(true)
-            xAxis.setDrawGridLines(false)
-            axisLeft.setDrawGridLines(false)
-            axisRight.isEnabled = false
-            legend.apply {
-                isEnabled = true
-                textSize = 12f
-                formSize = 10f
-            }
-            xAxis.valueFormatter = object : ValueFormatter() {
-                override fun getFormattedValue(value: Float): String {
-                    val minutes = (value / 60).toInt()
-                    val seconds = (value % 60).toInt()
-                    return String.format(Locale.US, "%02d:%02d", minutes, seconds)
-                }
-            }
-        }
-    }
-
     override fun onDestroy() {
         super.onDestroy()
         if (::fusedLocationClient.isInitialized) {
             fusedLocationClient.removeLocationUpdates(locationCallback)
         }
+        stopTimer()
     }
 
     override fun onResume() {
@@ -186,6 +197,7 @@ class TrainingActivity : AppCompatActivity() {
         avgTiltAngle = 0f
         strokeTimestamps.clear()
         maxSPM = 0f
+        startTimer()
     }
 
     private fun startTracking() {
@@ -207,6 +219,7 @@ class TrainingActivity : AppCompatActivity() {
     }
 
     private fun stopTraining() {
+        stopTimer()
         val viewModel: TrainingViewModel by viewModels()
 
         val session = TrainingSession(
@@ -215,9 +228,9 @@ class TrainingActivity : AppCompatActivity() {
             avgSpeed = avgSpeed,
             maxSPM = maxSPM,
             avgTilt = avgTiltAngle,
-            speedChart = extractChartData(speedChart),
-            strokeRateChart = extractChartData(strokeRateChart),
-            tiltChart = extractChartData(tiltChart),
+            speedChart = speedChartManager.getAllEntries().map { it.y },
+            strokeRateChart = strokeRateChartManager.getAllEntries().map { it.y },
+            tiltChart = tiltChartManager.getAllEntries().map { it.y },
             speedTimestamps = speedTimestamps,
             strokeRateTimestamps = strokeRateTimestamps,
             tiltTimestamps = tiltTimestamps
@@ -253,7 +266,7 @@ class TrainingActivity : AppCompatActivity() {
         findViewById<TextView>(R.id.textMaxSpeed).text = getString(R.string.max_speed_text, maxSpeed)
 
         // Обновляем график скорости
-        updateChart(speedChart, speedKmh)
+        speedChartManager.updateChart(speedKmh, startTime)
     }
 
     private fun processAccelerometerData(values: FloatArray) {
@@ -268,7 +281,7 @@ class TrainingActivity : AppCompatActivity() {
         // Усредняем
         val avgAcceleration = accelerationBuffer.average().toFloat()
 
-        val threshold = 2f //TODO: Подобрать оптимальное значение
+        val threshold = 2f // Порог засчитывания ускорения
         val minInterval = 300 // 300 мс между гребками (200 ударов в минуту)
 
         val currentTime = System.currentTimeMillis()
@@ -287,7 +300,7 @@ class TrainingActivity : AppCompatActivity() {
                     }
                     findViewById<TextView>(R.id.textStrokeRate).text = getString(R.string.stroke_rate_text, strokeRate)
                     findViewById<TextView>(R.id.textMaxStrokeRate).text = getString(R.string.max_stroke_rate_text, maxSPM)
-                    updateChart(strokeRateChart, strokeRate)
+                    strokeRateChartManager.updateChart(strokeRate, startTime)
                 }
             }
         }
@@ -334,26 +347,6 @@ class TrainingActivity : AppCompatActivity() {
         findViewById<TextView>(R.id.textTilt).text = getString(R.string.tilt_text, tiltAngle)
         findViewById<TextView>(R.id.textAvgTilt).text = getString(R.string.avg_tilt_text, avgTiltAngle)
 
-        updateChart(tiltChart, tiltAngle) // Обновляем график
-    }
-
-    private fun updateChart(chart: LineChart, value: Float) {
-        val elapsedTime = (System.currentTimeMillis() - startTime) / 1000f
-
-        val dataSet = chart.data?.getDataSetByIndex(0) as? LineDataSet ?: LineDataSet(null, "Data").apply {
-            color = Color.BLUE
-            valueTextColor = Color.BLACK
-            chart.data = LineData(this)
-        }
-
-        dataSet.addEntry(Entry(elapsedTime, value))
-        chart.data.notifyDataChanged()
-        chart.notifyDataSetChanged()
-        chart.invalidate()
-    }
-
-    private fun extractChartData(chart: LineChart): List<Float> {
-        val dataSet = chart.data?.getDataSetByIndex(0) as? LineDataSet
-        return dataSet?.values?.map { it.y } ?: emptyList()
+        tiltChartManager.updateChart(tiltAngle, startTime)
     }
 }

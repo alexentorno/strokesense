@@ -19,4 +19,7 @@ interface TrainingSessionDao {
 
     @Query("DELETE FROM training_sessions WHERE id = :sessionId")
     suspend fun deleteSession(sessionId: Int)
+
+    @Query("DELETE FROM training_sessions")
+    suspend fun deleteAllTrainings()
 }

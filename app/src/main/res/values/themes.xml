@@ -7,6 +7,9 @@
         <item name="colorSecondary">@color/light_blue</item>
         <item name="colorOnPrimary">@color/white</item>
         <item name="backgroundColor">@color/background</item>
+
+        <item name="chartLineColor">@color/chart_line_light</item>
+        <item name="chartTextColor">@color/chart_text_light</item>
 <!--        <item name="android:windowLightStatusBar">true</item>-->
     </style>
 

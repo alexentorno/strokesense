@@ -3,15 +3,14 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:padding="16dp"
-    android:background="?attr/backgroundColor">
+    android:padding="16dp">
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="@string/training_history_title"
-        android:textSize="28sp"
-        android:fontFamily="@font/righteous_regular"
+        android:textSize="24sp"
+        android:textStyle="bold"
         android:textColor="?attr/colorPrimary"
         android:layout_gravity="center_horizontal"
         android:layout_marginBottom="16dp"/>
@@ -19,6 +18,21 @@
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recyclerView"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
         android:paddingTop="8dp"/>
+
+    <!-- Add this Clear All button at the bottom -->
+    <Button
+        android:id="@+id/btnClearAll"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/clear_all_trainings"
+        android:textSize="20sp"
+        android:fontFamily="@font/sofia_sans_bold"
+        android:textColor="?attr/backgroundColor"
+        android:backgroundTint="?attr/colorError"
+        android:layout_marginTop="16dp"
+        android:paddingVertical="12dp"
+        android:stateListAnimator="@null"/>
 </LinearLayout>

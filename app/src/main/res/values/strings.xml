@@ -7,6 +7,7 @@
     <string name="start_training">Start Training</string>
     <string name="view_training_history">View History</string>
     <string name="stop_training">Stop Training</string>
+    <string name="timer">00:00:00</string>
     <string name="speed">Speed</string>
     <string name="acceleration">Acceleration</string>
     <string name="stroke_rate">Stroke Rate</string>
@@ -25,6 +26,11 @@
     <string name="confirm_delete_training">Are you sure you want to delete this training session?</string>
     <string name="delete">Delete</string>
     <string name="cancel">Cancel</string>
+
+    <string name="clear_all_trainings">CLEAR ALL TRAININGS</string>
+    <string name="clear_all_trainings_title">Clear All Trainings</string>
+    <string name="confirm_clear_all_trainings">Are you sure you want to delete all training sessions?</string>
+    <string name="clear_all">Clear All</string>
 
     <string name="speed_text">Speed: %.1f km/h</string>
     <string name="avg_speed_text">Avg Speed: %.1f km/h</string>

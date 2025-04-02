@@ -6,7 +6,9 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.alpekh.strokesense.model.TrainingSession
 import com.alpekh.strokesense.repository.AppDatabase
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class TrainingViewModel(application: Application) : AndroidViewModel(application) {
     private val db = AppDatabase.getDatabase(application)
@@ -30,6 +32,13 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
         viewModelScope.launch {
             trainingDao.deleteSession(session.id)
             callback() // Обновл UI после удаления
+        }
+    }
+
+    fun deleteAllTrainings(callback: () -> Unit) {
+        viewModelScope.launch {
+            trainingDao.deleteAllTrainings()
+            callback()
         }
     }
 }
