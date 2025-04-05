@@ -29,6 +29,7 @@
         <activity android:name=".ui.TrainingActivity"/>
         <activity android:name=".ui.TrainingHistoryActivity"/>
         <activity android:name=".ui.TrainingDetailActivity"/>
+        <activity android:name=".ui.SettingsActivity"/>
 
     </application>
 

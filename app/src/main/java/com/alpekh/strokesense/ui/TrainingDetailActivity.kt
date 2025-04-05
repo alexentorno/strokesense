@@ -35,6 +35,7 @@ class TrainingDetailActivity : AppCompatActivity() {
         setContentView(R.layout.activity_training_detail)
 
         val sessionId = intent.getIntExtra("sessionId", -1)
+        val trainingDurationTextView = findViewById<TextView>(R.id.textViewDuration)
         val speedChart = findViewById<LineChart>(R.id.speedChart)
         val accelerationChart = findViewById<LineChart>(R.id.accelerationChart)
         val tiltChart = findViewById<LineChart>(R.id.tiltChart)
@@ -47,6 +48,16 @@ class TrainingDetailActivity : AppCompatActivity() {
         viewModel.getTrainings { sessions ->
             val session = sessions.find { it.id == sessionId }
             session?.let {
+                val seconds = (it.endTime / 1000) % 60
+                val minutes = (it.endTime / (1000 * 60)) % 60
+                val hours = (it.endTime / (1000 * 60 * 60))
+                val formattedDuration = String.format(Locale.getDefault(), "%02d:%02d:%02d", hours, minutes, seconds)
+
+                trainingDurationTextView.text = getString(R.string.training_duration, formattedDuration)
+
+                findViewById<TextView>(R.id.textViewDistance).text =
+                    getString(R.string.distance_text, session.distance / 1000)
+
                 findViewById<TextView>(R.id.textViewMaxSpeed).text = getString(R.string.max_speed_text, it.maxSpeed)
                 findViewById<TextView>(R.id.textViewAvgSpeed).text = getString(R.string.avg_speed_text, it.avgSpeed)
                 findViewById<TextView>(R.id.textViewSPM).text = getString(R.string.max_stroke_rate_text, it.maxSPM)
@@ -59,6 +70,8 @@ class TrainingDetailActivity : AppCompatActivity() {
 
             }
         }
+
+
     }
 
     private fun setupChart(chart: LineChart) {

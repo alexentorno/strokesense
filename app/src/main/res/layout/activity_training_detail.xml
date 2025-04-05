@@ -14,10 +14,27 @@
         android:gravity="center_horizontal">
 
         <TextView
+            android:id="@+id/textViewDuration"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="20sp"
+            android:fontFamily="@font/sofia_sans_bold"
+            android:textColor="?attr/colorSecondary"
+            android:layout_marginBottom="16dp"/>
+
+        <TextView
+            android:id="@+id/textViewDistance"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="20sp"
+            android:fontFamily="@font/sofia_sans_bold"
+            android:textColor="?attr/colorSecondary"
+            android:layout_marginBottom="16dp"/>
+
+        <TextView
             android:id="@+id/textViewMaxSpeed"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Max Speed:"
             android:textSize="20sp"
             android:fontFamily="@font/sofia_sans_bold"
             android:textColor="?attr/colorSecondary"
@@ -27,7 +44,6 @@
             android:id="@+id/textViewAvgSpeed"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Avg Speed:"
             android:textSize="20sp"
             android:fontFamily="@font/sofia_sans_bold"
             android:textColor="?attr/colorSecondary"
@@ -37,7 +53,6 @@
             android:id="@+id/textViewSPM"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Max Stroke Rate:"
             android:textSize="20sp"
             android:fontFamily="@font/sofia_sans_bold"
             android:textColor="?attr/colorSecondary"
@@ -47,7 +62,6 @@
             android:id="@+id/textViewTilt"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Avg Tilt Angle:"
             android:textSize="20sp"
             android:fontFamily="@font/sofia_sans_bold"
             android:textColor="?attr/colorSecondary"

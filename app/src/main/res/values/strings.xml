@@ -1,12 +1,15 @@
 <resources>
     <string name="app_name">StrokeSense</string>
     <string name="welcome">Welcome to StrokeSense</string>
+    <string name="app_logo">App Logo</string>
     <string name="training_history_title">Training History</string>
     <string name="training_details_title">Training Details</string>
     <string name="charts_title">Charts</string>
     <string name="start_training">Start Training</string>
     <string name="view_training_history">View History</string>
     <string name="stop_training">Stop Training</string>
+    <string name="pause">Pause</string>
+    <string name="resume">Resume</string>
     <string name="timer">00:00:00</string>
     <string name="speed">Speed</string>
     <string name="acceleration">Acceleration</string>
@@ -14,6 +17,9 @@
     <string name="tilt">Tilt</string>
     <string name="training_date">Training Date</string>
     <string name="delete_session">Delete Training Session</string>
+    <string name="training_duration">Duration: %s</string>
+    <string name="distance_text">Distance: %.2f km</string>
+    <string name="distance_initial_text">Distance: 0,00 km</string>
     <string name="max_speed_initial_text">Max Speed: 0 km/h</string>
     <string name="avg_speed_initial_text">Avg Speed: 0 km/h</string>
     <string name="speed_initial_text">Speed: 0 km/h</string>
@@ -41,5 +47,8 @@
 
     <string name="tilt_text">Tilt: %.1f°</string>
     <string name="avg_tilt_text">Avg Tilt: %.1f°</string>
+
+    <string name="tilt_sensitivity">Tilt Sensitivity: %.2f</string>
+    <string name="stroke_rate_sensitivity">Stroke Rate Sensitivity: %.1f</string>
 
 </resources>

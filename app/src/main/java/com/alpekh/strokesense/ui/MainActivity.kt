@@ -5,6 +5,8 @@ import android.widget.Button
 import androidx.appcompat.app.AppCompatActivity
 import com.alpekh.strokesense.R
 import android.content.Intent
+import android.content.res.Configuration
+import android.widget.ImageView
 
 class MainActivity : AppCompatActivity() {
 
@@ -12,16 +14,27 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        val imgLogo = findViewById<ImageView>(R.id.imgLogo)
+        val nightModeFlags = resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
+
+        if (nightModeFlags == Configuration.UI_MODE_NIGHT_YES) {
+            imgLogo.setImageResource(R.drawable.main_logo_dark)
+        } else {
+            imgLogo.setImageResource(R.drawable.main_logo_light)
+        }
+
         val btnStart = findViewById<Button>(R.id.btnStartTraining)
         btnStart.setOnClickListener {
-            val intent = Intent(this, TrainingActivity::class.java)
-            startActivity(intent)
+            startActivity(Intent(this, TrainingActivity::class.java))
         }
 
         val btnHistory = findViewById<Button>(R.id.btnTrainingHistory)
         btnHistory.setOnClickListener {
-            val intent = Intent(this, TrainingHistoryActivity::class.java)
-            startActivity(intent)
+            startActivity(Intent(this, TrainingHistoryActivity::class.java))
+        }
+
+        findViewById<Button>(R.id.btnSettings).setOnClickListener {
+            startActivity(Intent(this, SettingsActivity::class.java))
         }
 
     }
