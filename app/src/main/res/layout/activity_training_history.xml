@@ -22,17 +22,18 @@
         android:layout_weight="1"
         android:paddingTop="8dp"/>
 
-    <!-- Add this Clear All button at the bottom -->
     <Button
         android:id="@+id/btnClearAll"
-        android:layout_width="match_parent"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
         android:text="@string/clear_all_trainings"
         android:textSize="20sp"
         android:fontFamily="@font/sofia_sans_bold"
         android:textColor="?attr/backgroundColor"
         android:backgroundTint="?attr/colorError"
         android:layout_marginTop="16dp"
+        android:paddingHorizontal="44dp"
         android:paddingVertical="12dp"
         android:stateListAnimator="@null"/>
 </LinearLayout>

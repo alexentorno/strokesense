@@ -335,7 +335,7 @@ class TrainingActivity : AppCompatActivity() {
         findViewById<TextView>(R.id.textMaxSpeed).text = getString(R.string.max_speed_text, maxSpeed)
         textDistance.text = getString(R.string.distance_text, totalDistance / 1000)
 
-        speedChartManager.updateChart(speedKmh, startTime)
+        speedChartManager.updateChart(speedKmh)
     }
 
     private fun processAccelerometerData(values: FloatArray) {
@@ -350,8 +350,8 @@ class TrainingActivity : AppCompatActivity() {
         // Усредняем
         val avgAcceleration = accelerationBuffer.average().toFloat()
 
-        val threshold = sensitivityAccel // Порог засчитывания ускорения TODO
-        val minInterval = 300 // 300 мс между гребками (200 ударов в минуту)
+        val threshold = sensitivityAccel // Порог засчитывания ускорения
+        val minInterval = 300 // мс между гребками (200 ударов в минуту)
 
         val currentTime = System.currentTimeMillis()
 
@@ -369,7 +369,7 @@ class TrainingActivity : AppCompatActivity() {
                     }
                     findViewById<TextView>(R.id.textStrokeRate).text = getString(R.string.stroke_rate_text, strokeRate)
                     findViewById<TextView>(R.id.textMaxStrokeRate).text = getString(R.string.max_stroke_rate_text, maxSPM)
-                    strokeRateChartManager.updateChart(strokeRate, startTime)
+                    strokeRateChartManager.updateChart(strokeRate)
                 }
             }
         }
@@ -403,7 +403,7 @@ class TrainingActivity : AppCompatActivity() {
         tiltAngle += gyroX * deltaTime * 57.3f // Перевод радиан в градусы
 
         // Фильтруем мелкие колебания
-        tiltAngle = (tiltAngle * sensitivityGyro) + (gyroX * deltaTime * 0.1f) //TODO Подобрать оптимальное значение
+        tiltAngle = (tiltAngle * sensitivityGyro) + (gyroX * deltaTime * 0.1f)
 
         // Обновляем средний угол
         totalTiltSum += tiltAngle
@@ -416,6 +416,6 @@ class TrainingActivity : AppCompatActivity() {
         findViewById<TextView>(R.id.textTilt).text = getString(R.string.tilt_text, tiltAngle)
         findViewById<TextView>(R.id.textAvgTilt).text = getString(R.string.avg_tilt_text, avgTiltAngle)
 
-        tiltChartManager.updateChart(tiltAngle, startTime)
+        tiltChartManager.updateChart(tiltAngle)
     }
 }

@@ -45,9 +45,8 @@ class ChartManager(private val chart: LineChart) {
         chart.data = LineData(dataSet)
     }
 
-    fun updateChart(value: Float, elapsedTimeMs: Long) {
+    fun updateChart(value: Float) {
         try {
-            val elapsedSeconds = elapsedTimeMs / 1000f
             val newEntry = Entry(displayEntries.size.toFloat(), value) // Use index as x-value
 
             allEntries.add(newEntry)
