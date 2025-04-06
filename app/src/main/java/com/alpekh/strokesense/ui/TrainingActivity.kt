@@ -56,7 +56,7 @@ class TrainingActivity : AppCompatActivity() {
     private lateinit var textAvgTilt: TextView
     private lateinit var btnPauseTraining: Button
 
-    private var isPaused = false
+    private val viewModel: TrainingViewModel by viewModels()
 
     private lateinit var sensorManager: SensorManager
     private var accelerometer: Sensor? = null
@@ -81,6 +81,7 @@ class TrainingActivity : AppCompatActivity() {
     private val speedHistory = mutableListOf<Float>()
 
     private var startTime: Long = 0L
+
     private var strokeCount = 0
     private var minValidStrokes = 3 // Минимальное количество гребков перед началом подсчёта
 
@@ -144,6 +145,8 @@ class TrainingActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_training)
 
+        viewModel.isPaused = savedInstanceState?.getBoolean("isPaused", false) ?: false
+
         val sharedPreferences = getSharedPreferences("StrokeSensePrefs", Context.MODE_PRIVATE)
         sensitivityAccel = 1.0f + sharedPreferences.getInt("sensitivity_accel", 5) * 0.2f
         sensitivityGyro = 0.7f + sharedPreferences.getInt("sensitivity_gyro", 2) * 0.01f
@@ -167,10 +170,11 @@ class TrainingActivity : AppCompatActivity() {
         textAvgTilt = findViewById(R.id.textAvgTilt)
         btnPauseTraining = findViewById(R.id.btnPauseTraining)
 
+        btnPauseTraining.text = if (viewModel.isPaused) getString(R.string.resume) else getString(R.string.pause)
 
         btnPauseTraining.setOnClickListener {
-            isPaused = !isPaused
-            if (isPaused) {
+            viewModel.isPaused = !viewModel.isPaused
+            if (viewModel.isPaused) {
                 pauseTraining()
                 btnPauseTraining.text = getString(R.string.resume)
             } else {
@@ -195,6 +199,11 @@ class TrainingActivity : AppCompatActivity() {
         gyroscope = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE)
     }
 
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putBoolean("isPaused", viewModel.isPaused)
+    }
+
     override fun onDestroy() {
         super.onDestroy()
         if (::fusedLocationClient.isInitialized) {
@@ -205,13 +214,17 @@ class TrainingActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        accelerometer?.let { sensorManager.registerListener(sensorEventListener, it, SensorManager.SENSOR_DELAY_UI) }
-        gyroscope?.let { sensorManager.registerListener(sensorEventListener, it, SensorManager.SENSOR_DELAY_UI) }
+        if (!viewModel.isPaused) {
+            accelerometer?.let { sensorManager.registerListener(sensorEventListener, it, SensorManager.SENSOR_DELAY_UI) }
+            gyroscope?.let { sensorManager.registerListener(sensorEventListener, it, SensorManager.SENSOR_DELAY_UI) }
+        }
     }
 
     override fun onPause() {
         super.onPause()
-        sensorManager.unregisterListener(sensorEventListener)
+        if (viewModel.isPaused) {
+            sensorManager.unregisterListener(sensorEventListener)
+        }
     }
 
     private fun showCancelTrainingDialog() {
@@ -281,9 +294,6 @@ class TrainingActivity : AppCompatActivity() {
 
     private fun stopTraining() {
         stopTimer()
-//        endTime = System.currentTimeMillis()
-        val viewModel: TrainingViewModel by viewModels()
-
         val session = TrainingSession(
             startTime = startTime,
             endTime = trainingDuration,

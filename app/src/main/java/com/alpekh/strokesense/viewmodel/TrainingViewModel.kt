@@ -11,6 +11,7 @@ import kotlinx.coroutines.launch
 class TrainingViewModel(application: Application) : AndroidViewModel(application) {
     private val db = AppDatabase.getDatabase(application)
     private val trainingDao = db.trainingSessionDao()
+    var isPaused = false
 
     fun saveTraining(session: TrainingSession) {
         viewModelScope.launch {
