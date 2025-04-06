@@ -2,6 +2,7 @@ package com.alpekh.strokesense.ui
 
 import android.Manifest
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.hardware.Sensor
 import android.hardware.SensorEvent
@@ -13,8 +14,10 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.alpekh.strokesense.R
 import android.location.Location
+import android.location.LocationManager
 import android.os.Handler
 import android.os.Looper
+import android.provider.Settings
 import android.widget.Button
 import android.widget.TextView
 import androidx.activity.addCallback
@@ -31,21 +34,14 @@ import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
 import java.util.Locale
+import kotlin.math.abs
+import kotlin.math.max
+import kotlin.math.round
 
 class TrainingActivity : AppCompatActivity() {
 
-    private lateinit var fusedLocationClient: FusedLocationProviderClient
-    private lateinit var locationRequest: LocationRequest
-    private lateinit var locationCallback: LocationCallback
-
-    private var sensitivityAccel: Float = 2f
-    private var sensitivityGyro: Float = 2f
-
+    // Views
     private lateinit var textTrainingTimer: TextView
-    private var timerHandler = Handler(Looper.getMainLooper())
-    private var timerRunnable: Runnable? = null
-    private var trainingDuration = 0L
-
     private lateinit var textDistance: TextView
     private lateinit var textSpeed: TextView
     private lateinit var textAvgSpeed: TextView
@@ -56,52 +52,60 @@ class TrainingActivity : AppCompatActivity() {
     private lateinit var textAvgTilt: TextView
     private lateinit var btnPauseTraining: Button
 
-    private val viewModel: TrainingViewModel by viewModels()
-
-    private lateinit var sensorManager: SensorManager
-    private var accelerometer: Sensor? = null
-    private var gyroscope: Sensor? = null
-
+    // Charts
     private lateinit var speedChart: LineChart
     private lateinit var strokeRateChart: LineChart
     private lateinit var tiltChart: LineChart
-
     private lateinit var speedChartManager: ChartManager
     private lateinit var strokeRateChartManager: ChartManager
     private lateinit var tiltChartManager: ChartManager
 
+    // Location
+    private lateinit var fusedLocationClient: FusedLocationProviderClient
+    private lateinit var locationRequest: LocationRequest
+    private lateinit var locationCallback: LocationCallback
+    private var lastLocation: Location? = null
+    private var lastKnownLocation: Location? = null
+    private var lastKnownSpeed = 0f
+
+    // Sensors
+    private lateinit var sensorManager: SensorManager
+    private var accelerometer: Sensor? = null
+    private var gyroscope: Sensor? = null
+    private var sensitivityAccel = 2f
+    private var sensitivityGyro = 2f
+
+    // Timing
+    private var timerHandler = Handler(Looper.getMainLooper())
+    private var timerRunnable: Runnable? = null
+    private var trainingDuration = 0L
+    private var startTime = 0L
+    private var lastSpeedUpdateTime = 0L
+    private val speedUpdateInterval = 1000L
+
+    // Stats
     private var maxSpeed = 0f
     private var totalSpeed = 0f
     private var avgSpeed = 0f
     private var speedCount = 0
-
     private var totalDistance = 0f
-    private var lastLocation: Location? = null
-
-    private val speedHistory = mutableListOf<Float>()
-
-    private var startTime: Long = 0L
-
     private var strokeCount = 0
-    private var minValidStrokes = 3 // Минимальное количество гребков перед началом подсчёта
-
+    private val minValidStrokes = 3
     private val strokeTimestamps = mutableListOf<Long>()
     private var maxSPM = 0f
     private var smoothedSPM = 0.0
     private val strokeWindow = 10000
-    private val accelerationBuffer = ArrayDeque<Float>(5) // Буфер последних значений
-
-    private var tiltAngle = 0f // Текущий угол наклона (Roll)
-    private var avgTiltAngle = 0f // Средний угол наклона
-
+    private val accelerationBuffer = ArrayDeque<Float>(5)
+    private var tiltAngle = 0f
+    private var avgTiltAngle = 0f
     private var lastGyroTime = System.currentTimeMillis()
-
-    private var totalTiltSum = 0f // Сумма всех измеренных углов
-    private var tiltMeasurements = 0 // Количество измерений угла
-
+    private var totalTiltSum = 0f
+    private var tiltMeasurements = 0
     private val speedTimestamps = mutableListOf<Long>()
     private val strokeRateTimestamps = mutableListOf<Long>()
     private val tiltTimestamps = mutableListOf<Long>()
+
+    private val viewModel: TrainingViewModel by viewModels()
 
     private val sensorEventListener = object : SensorEventListener {
         override fun onSensorChanged(event: SensorEvent?) {
@@ -116,45 +120,30 @@ class TrainingActivity : AppCompatActivity() {
         override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
     }
 
-    private fun startTimer() {
-        timerRunnable = object : Runnable {
-            override fun run() {
-                trainingDuration = System.currentTimeMillis() - startTime
-                updateTimerText()
-                timerHandler.postDelayed(this, 1000)
-            }
-        }
-        timerHandler.post(timerRunnable!!)
-    }
-
-    private fun stopTimer() {
-        timerRunnable?.let {
-            timerHandler.removeCallbacks(it)
-        }
-    }
-
-    private fun updateTimerText() {
-        val seconds = (trainingDuration / 1000) % 60
-        val minutes = (trainingDuration / (1000 * 60)) % 60
-        val hours = (trainingDuration / (1000 * 60 * 60))
-
-        textTrainingTimer.text = String.format(Locale.getDefault(), "%02d:%02d:%02d", hours, minutes, seconds)
-    }
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_training)
-
         viewModel.isPaused = savedInstanceState?.getBoolean("isPaused", false) ?: false
 
-        val sharedPreferences = getSharedPreferences("StrokeSensePrefs", Context.MODE_PRIVATE)
-        sensitivityAccel = 1.0f + sharedPreferences.getInt("sensitivity_accel", 5) * 0.2f
-        sensitivityGyro = 0.7f + sharedPreferences.getInt("sensitivity_gyro", 2) * 0.01f
+        initViews()
+        initSensors()
+        setupButtons()
 
+        if (checkLocationPermission()) {
+            val locationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
+            if (!locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+                showGpsDisabledAlert()
+            } else {
+                startTraining()
+                startTracking()
+            }
+        }
+    }
+
+    private fun initViews() {
         speedChart = findViewById(R.id.speedChart)
         tiltChart = findViewById(R.id.tiltChart)
         strokeRateChart = findViewById(R.id.strokeRateChart)
-
         speedChartManager = ChartManager(speedChart)
         strokeRateChartManager = ChartManager(strokeRateChart)
         tiltChartManager = ChartManager(tiltChart)
@@ -169,85 +158,50 @@ class TrainingActivity : AppCompatActivity() {
         textTilt = findViewById(R.id.textTilt)
         textAvgTilt = findViewById(R.id.textAvgTilt)
         btnPauseTraining = findViewById(R.id.btnPauseTraining)
-
         btnPauseTraining.text = if (viewModel.isPaused) getString(R.string.resume) else getString(R.string.pause)
 
-        btnPauseTraining.setOnClickListener {
-            viewModel.isPaused = !viewModel.isPaused
-            if (viewModel.isPaused) {
-                pauseTraining()
-                btnPauseTraining.text = getString(R.string.resume)
-            } else {
-                resumeTraining()
-                btnPauseTraining.text = getString(R.string.pause)
-            }
-        }
+        val sharedPrefs = getSharedPreferences("StrokeSensePrefs", Context.MODE_PRIVATE)
+        sensitivityAccel = 1.0f + sharedPrefs.getInt("sensitivity_accel", 5) * 0.2f
+        sensitivityGyro = 0.7f + sharedPrefs.getInt("sensitivity_gyro", 2) * 0.01f
+    }
 
-        onBackPressedDispatcher.addCallback(this) {
-            showCancelTrainingDialog()
-        }
-
-        findViewById<Button>(R.id.btnStopTraining).setOnClickListener { stopTraining() }
-
-        if (checkLocationPermission()) {
-            startTraining()
-            startTracking()
-        }
-
+    private fun initSensors() {
         sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
         accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
         gyroscope = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE)
     }
 
-    override fun onSaveInstanceState(outState: Bundle) {
-        super.onSaveInstanceState(outState)
-        outState.putBoolean("isPaused", viewModel.isPaused)
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        if (::fusedLocationClient.isInitialized) {
-            fusedLocationClient.removeLocationUpdates(locationCallback)
+    private fun setupButtons() {
+        btnPauseTraining.setOnClickListener {
+            viewModel.isPaused = !viewModel.isPaused
+            if (viewModel.isPaused) pauseTraining().also { btnPauseTraining.text = getString(R.string.resume) }
+            else resumeTraining().also { btnPauseTraining.text = getString(R.string.pause) }
         }
-        stopTimer()
+        onBackPressedDispatcher.addCallback(this) { showCancelTrainingDialog() }
+        findViewById<Button>(R.id.btnStopTraining).setOnClickListener { stopTraining() }
     }
 
-    override fun onResume() {
-        super.onResume()
-        if (!viewModel.isPaused) {
-            accelerometer?.let { sensorManager.registerListener(sensorEventListener, it, SensorManager.SENSOR_DELAY_UI) }
-            gyroscope?.let { sensorManager.registerListener(sensorEventListener, it, SensorManager.SENSOR_DELAY_UI) }
-        }
-    }
-
-    override fun onPause() {
-        super.onPause()
-        if (viewModel.isPaused) {
-            sensorManager.unregisterListener(sensorEventListener)
-        }
-    }
-
-    private fun showCancelTrainingDialog() {
-        AlertDialog.Builder(this)
-            .setTitle("Cancel Training")
-            .setMessage("Do you really want to cancel the current training?")
-            .setPositiveButton("Yes") { _, _ ->
-                finish()
+    // Timer functions
+    private fun startTimer() {
+        timerRunnable = object : Runnable {
+            override fun run() {
+                trainingDuration = System.currentTimeMillis() - startTime
+                updateTimerText()
+                timerHandler.postDelayed(this, 1000)
             }
-            .setNegativeButton("No", null)
-            .setCancelable(true)
-            .show()
+        }.also { timerHandler.post(it) }
     }
 
-    private fun checkLocationPermission(): Boolean {
-        return if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-            true
-        } else {
-            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.ACCESS_FINE_LOCATION), 1)
-            false
-        }
+    private fun stopTimer() = timerRunnable?.let { timerHandler.removeCallbacks(it) }
+
+    private fun updateTimerText() {
+        val seconds = (trainingDuration / 1000) % 60
+        val minutes = (trainingDuration / (1000 * 60)) % 60
+        val hours = (trainingDuration / (1000 * 60 * 60))
+        textTrainingTimer.text = String.format(Locale.getDefault(), "%02d:%02d:%02d", hours, minutes, seconds)
     }
 
+    // Training control
     private fun startTraining() {
         strokeCount = 0
         startTime = System.currentTimeMillis()
@@ -257,24 +211,6 @@ class TrainingActivity : AppCompatActivity() {
         strokeTimestamps.clear()
         maxSPM = 0f
         startTimer()
-    }
-
-    private fun startTracking() {
-        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
-
-        locationRequest = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 2000).build()
-
-        locationCallback = object : LocationCallback() {
-            override fun onLocationResult(locationResult: LocationResult) {
-                for (location in locationResult.locations) {
-                    updateSpeed(location)
-                }
-            }
-        }
-
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-            fusedLocationClient.requestLocationUpdates(locationRequest, locationCallback, Looper.getMainLooper())
-        }
     }
 
     private fun pauseTraining() {
@@ -294,138 +230,168 @@ class TrainingActivity : AppCompatActivity() {
 
     private fun stopTraining() {
         stopTimer()
-        val session = TrainingSession(
-            startTime = startTime,
-            endTime = trainingDuration,
-            distance = totalDistance,
-            maxSpeed = maxSpeed,
-            avgSpeed = avgSpeed,
-            maxSPM = maxSPM,
-            avgTilt = avgTiltAngle,
+        viewModel.saveTraining(TrainingSession(
+            startTime = startTime, endTime = trainingDuration, distance = totalDistance,
+            maxSpeed = maxSpeed, avgSpeed = avgSpeed, maxSPM = maxSPM, avgTilt = avgTiltAngle,
             speedChart = speedChartManager.getAllEntries().map { it.y },
             strokeRateChart = strokeRateChartManager.getAllEntries().map { it.y },
             tiltChart = tiltChartManager.getAllEntries().map { it.y },
-            speedTimestamps = speedTimestamps,
-            strokeRateTimestamps = strokeRateTimestamps,
+            speedTimestamps = speedTimestamps, strokeRateTimestamps = strokeRateTimestamps,
             tiltTimestamps = tiltTimestamps
-        )
-
-        viewModel.saveTraining(session)
-        finish() // Закрывает текущую активность и возвращает на предыдущую
+        ))
+        finish()
     }
 
-    private fun updateSpeed(location: Location) {
-        val speedKmh = location.speed * 3.6f // м/с перевод к км/ч
-        val currentTime = System.currentTimeMillis()
+    // Location tracking
+    private fun startTracking() {
+        val locationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
+        if (!locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+            showGpsDisabledAlert()
+            return
+        }
 
-        // Фильтрация выбросов: игнорируем, если скорость изменилась слишком резко
-        if (speedHistory.isNotEmpty()
-            && kotlin.math.abs(speedKmh - speedHistory.last()) > 10) return
+        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
+        locationRequest = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 1000)
+            .setMinUpdateIntervalMillis(500).setWaitForAccurateLocation(true)
+            .setMinUpdateDistanceMeters(0f).build()
 
-        speedTimestamps.add(currentTime)
+        locationCallback = object : LocationCallback() {
+            override fun onLocationResult(locationResult: LocationResult) {
+                locationResult.locations.forEach { processLocationUpdate(it) }
+            }
+        }
 
-        // Ограничиваем историю до 10 последних значений (скользящее среднее)
-        if (speedHistory.size >= 10) speedHistory.removeAt(0)
-        speedHistory.add(speedKmh)
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+            fusedLocationClient.requestLocationUpdates(locationRequest, locationCallback, Looper.getMainLooper())
+        }
 
-        totalSpeed += speedKmh
+        timerHandler.post(object : Runnable {
+            override fun run() {
+                if (System.currentTimeMillis() - lastSpeedUpdateTime >= speedUpdateInterval) {
+                    updateSpeedDisplay().also { lastSpeedUpdateTime = System.currentTimeMillis() }
+                }
+                timerHandler.postDelayed(this, 100)
+            }
+        })
+    }
+
+    private fun processLocationUpdate(location: Location) {
+        if (location.accuracy > 15f) return
+        lastKnownLocation = location
+        lastKnownSpeed = (location.speed * 3.6f).let { if (it < 0.5f) 0f else it }
+    }
+
+    private fun updateSpeedDisplay() {
+        totalSpeed += lastKnownSpeed
         speedCount++
         avgSpeed = totalSpeed / speedCount
-        maxSpeed = maxSpeed.coerceAtLeast(speedKmh)
+        maxSpeed = max(maxSpeed, lastKnownSpeed)
 
-        lastLocation?.let {
-            val distance = it.distanceTo(location) //в метрах
-            totalDistance += distance
+        lastKnownLocation?.let { currentLoc ->
+            lastLocation?.let { prevLoc -> totalDistance += max(0f, prevLoc.distanceTo(currentLoc)) }
+            lastLocation = currentLoc
         }
-        lastLocation = location
 
-        // Обновляем UI
-        findViewById<TextView>(R.id.textSpeed).text = getString(R.string.speed_text, speedKmh)
-        findViewById<TextView>(R.id.textAvgSpeed).text = getString(R.string.avg_speed_text, avgSpeed)
-        findViewById<TextView>(R.id.textMaxSpeed).text = getString(R.string.max_speed_text, maxSpeed)
-        textDistance.text = getString(R.string.distance_text, totalDistance / 1000)
-
-        speedChartManager.updateChart(speedKmh)
+        runOnUiThread {
+            textSpeed.text = getString(R.string.speed_text, lastKnownSpeed.roundTo(1))
+            textAvgSpeed.text = getString(R.string.avg_speed_text, avgSpeed.roundTo(1))
+            textMaxSpeed.text = getString(R.string.max_speed_text, maxSpeed.roundTo(1))
+            textDistance.text = getString(R.string.distance_text, (totalDistance / 1000).roundTo(3))
+            speedChartManager.updateChart(lastKnownSpeed)
+        }
+        speedTimestamps.add(System.currentTimeMillis())
     }
 
+    // Sensor processing
     private fun processAccelerometerData(values: FloatArray) {
-        val forwardAcceleration = values[1]
-
-        // Обновляем буфер
-        if (accelerationBuffer.size >= 5) {
-            accelerationBuffer.removeFirst()
-        }
-        accelerationBuffer.add(forwardAcceleration)
-
-        // Усредняем
+        if (accelerationBuffer.size >= 5) accelerationBuffer.removeFirst()
+        accelerationBuffer.add(values[1])
         val avgAcceleration = accelerationBuffer.average().toFloat()
 
-        val threshold = sensitivityAccel // Порог засчитывания ускорения
-        val minInterval = 300 // мс между гребками (200 ударов в минуту)
-
-        val currentTime = System.currentTimeMillis()
-
-        if (kotlin.math.abs(avgAcceleration) > threshold) {
-            if (strokeTimestamps.isEmpty() || (currentTime - strokeTimestamps.last()) > minInterval) {
-                strokeTimestamps.add(currentTime)
-                strokeTimestamps.removeAll { it < currentTime - strokeWindow }
-
+        if (abs(avgAcceleration) > sensitivityAccel) {
+            val currentTime = System.currentTimeMillis()
+            if (strokeTimestamps.isEmpty() || currentTime - strokeTimestamps.last() > 300) {
+                strokeTimestamps.add(currentTime).also { strokeTimestamps.removeAll { it < currentTime - strokeWindow } }
                 strokeRateTimestamps.add(currentTime)
-
                 if (strokeTimestamps.size >= minValidStrokes) {
-                    val strokeRate = calculateSPM()
-                    if (strokeRate > maxSPM) {
-                        maxSPM = strokeRate
+                    calculateSPM().let {
+                        maxSPM = max(maxSPM, it)
+                        findViewById<TextView>(R.id.textStrokeRate).text = getString(R.string.stroke_rate_text, it)
+                        findViewById<TextView>(R.id.textMaxStrokeRate).text = getString(R.string.max_stroke_rate_text, maxSPM)
+                        strokeRateChartManager.updateChart(it)
                     }
-                    findViewById<TextView>(R.id.textStrokeRate).text = getString(R.string.stroke_rate_text, strokeRate)
-                    findViewById<TextView>(R.id.textMaxStrokeRate).text = getString(R.string.max_stroke_rate_text, maxSPM)
-                    strokeRateChartManager.updateChart(strokeRate)
                 }
             }
         }
     }
 
-
     private fun calculateSPM(): Float {
         val strokesMade = strokeTimestamps.size
-        val avgStrokeTime = if (strokesMade > 1) {
-            (strokeTimestamps.last() - strokeTimestamps.first()) / (strokesMade - 1).toDouble()
-        } else {
-            strokeWindow.toDouble()
-        }
-
-        val strokeRate = (60_000 / avgStrokeTime) //удары/мин
-        val smoothingFactor = 0.9 // Чем меньше, тем сильнее сглаживание
-
-        // Сглаживание
-        smoothedSPM = (strokeRate * smoothingFactor) + (smoothedSPM * (1 - smoothingFactor))
-
+        val avgStrokeTime = if (strokesMade > 1) (strokeTimestamps.last() - strokeTimestamps.first()) / (strokesMade - 1).toDouble()
+        else strokeWindow.toDouble()
+        val strokeRate = 60_000 / avgStrokeTime
+        smoothedSPM = (strokeRate * 0.9) + (smoothedSPM * 0.1)
         return smoothedSPM.toFloat()
     }
 
     private fun processGyroscopeData(values: FloatArray) {
-        val gyroX = values[1] // Вращение вокруг горизонтальной оси
         val currentTime = System.currentTimeMillis()
-        val deltaTime = (currentTime - lastGyroTime) / 1000f // Время в секундах
+        val deltaTime = (currentTime - lastGyroTime) / 1000f
         lastGyroTime = currentTime
-
-        // Интегрируем угловую скорость, чтобы получить угол
-        tiltAngle += gyroX * deltaTime * 57.3f // Перевод радиан в градусы
-
-        // Фильтруем мелкие колебания
-        tiltAngle = (tiltAngle * sensitivityGyro) + (gyroX * deltaTime * 0.1f)
-
-        // Обновляем средний угол
+        tiltAngle = (tiltAngle * sensitivityGyro) + (values[1] * deltaTime * 57.3f)
         totalTiltSum += tiltAngle
-        tiltMeasurements++
-        avgTiltAngle = totalTiltSum / tiltMeasurements
-
+        avgTiltAngle = totalTiltSum / ++tiltMeasurements
         tiltTimestamps.add(currentTime)
+        runOnUiThread {
+            textTilt.text = getString(R.string.tilt_text, tiltAngle)
+            textAvgTilt.text = getString(R.string.avg_tilt_text, avgTiltAngle)
+            tiltChartManager.updateChart(tiltAngle)
+        }
+    }
 
-        // Обновляем UI
-        findViewById<TextView>(R.id.textTilt).text = getString(R.string.tilt_text, tiltAngle)
-        findViewById<TextView>(R.id.textAvgTilt).text = getString(R.string.avg_tilt_text, avgTiltAngle)
+    // Helper functions
+    private fun Float.roundTo(decimals: Int): Float {
+        var multiplier = 1f
+        repeat(decimals) { multiplier *= 10f }
+        return round(this * multiplier) / multiplier
+    }
 
-        tiltChartManager.updateChart(tiltAngle)
+    private fun checkLocationPermission(): Boolean {
+        return if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) true
+        else ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.ACCESS_FINE_LOCATION), 1).let { false }
+    }
+
+    private fun showGpsDisabledAlert() {
+        AlertDialog.Builder(this).setTitle("GPS turned off")
+            .setMessage("For precise location and speed measurements it is vital to have GPS turned on. Enable GPS?")
+            .setPositiveButton("Yes") { _, _ -> startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)) }
+            .setNegativeButton("No", null).show()
+    }
+
+    private fun showCancelTrainingDialog() {
+        AlertDialog.Builder(this).setTitle("Cancel Training")
+            .setMessage("Do you really want to cancel the current training?")
+            .setPositiveButton("Yes") { _, _ -> finish() }
+            .setNegativeButton("No", null).setCancelable(true).show()
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) = super.onSaveInstanceState(outState.apply {
+        putBoolean("isPaused", viewModel.isPaused)
+    })
+
+    override fun onDestroy() = super.onDestroy().also {
+        if (::fusedLocationClient.isInitialized) fusedLocationClient.removeLocationUpdates(locationCallback)
+        stopTimer()
+    }
+
+    override fun onResume() = super.onResume().also {
+        if (!viewModel.isPaused) {
+            accelerometer?.let { sensorManager.registerListener(sensorEventListener, it, SensorManager.SENSOR_DELAY_UI) }
+            gyroscope?.let { sensorManager.registerListener(sensorEventListener, it, SensorManager.SENSOR_DELAY_UI) }
+        }
+    }
+
+    override fun onPause() = super.onPause().also {
+        if (viewModel.isPaused) sensorManager.unregisterListener(sensorEventListener)
     }
 }
