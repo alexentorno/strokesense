@@ -82,6 +82,7 @@ class TrainingActivity : AppCompatActivity() {
     private var startTime = 0L
     private var lastSpeedUpdateTime = 0L
     private val speedUpdateInterval = 1000L
+    private var elapsedTimeBeforePause = 0L
 
     // Stats
     private var maxSpeed = 0f
@@ -185,7 +186,6 @@ class TrainingActivity : AppCompatActivity() {
     private fun startTimer() {
         timerRunnable = object : Runnable {
             override fun run() {
-                trainingDuration = System.currentTimeMillis() - startTime
                 updateTimerText()
                 timerHandler.postDelayed(this, 1000)
             }
@@ -195,6 +195,9 @@ class TrainingActivity : AppCompatActivity() {
     private fun stopTimer() = timerRunnable?.let { timerHandler.removeCallbacks(it) }
 
     private fun updateTimerText() {
+        val currentTime = System.currentTimeMillis()
+        trainingDuration = elapsedTimeBeforePause + (currentTime - startTime)
+
         val seconds = (trainingDuration / 1000) % 60
         val minutes = (trainingDuration / (1000 * 60)) % 60
         val hours = (trainingDuration / (1000 * 60 * 60))
@@ -215,11 +218,13 @@ class TrainingActivity : AppCompatActivity() {
 
     private fun pauseTraining() {
         stopTimer()
+        elapsedTimeBeforePause += System.currentTimeMillis() - startTime
         sensorManager.unregisterListener(sensorEventListener)
         fusedLocationClient.removeLocationUpdates(locationCallback)
     }
 
     private fun resumeTraining() {
+        startTime = System.currentTimeMillis()
         startTimer()
         accelerometer?.let { sensorManager.registerListener(sensorEventListener, it, SensorManager.SENSOR_DELAY_UI) }
         gyroscope?.let { sensorManager.registerListener(sensorEventListener, it, SensorManager.SENSOR_DELAY_UI) }
@@ -267,7 +272,7 @@ class TrainingActivity : AppCompatActivity() {
 
         timerHandler.post(object : Runnable {
             override fun run() {
-                if (System.currentTimeMillis() - lastSpeedUpdateTime >= speedUpdateInterval) {
+                if (!viewModel.isPaused && System.currentTimeMillis() - lastSpeedUpdateTime >= speedUpdateInterval) {
                     updateSpeedDisplay().also { lastSpeedUpdateTime = System.currentTimeMillis() }
                 }
                 timerHandler.postDelayed(this, 100)
