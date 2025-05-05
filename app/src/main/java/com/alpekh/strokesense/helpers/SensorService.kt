@@ -21,8 +21,6 @@ class SensorService : Service() {
 
     override fun onCreate() {
         super.onCreate()
-        println("SensorService created")
-        Log.d("SensorService", "Service created")
         val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
         wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "StrokeSense::SensorWakeLock")
         wakeLock.acquire(10*60*1000L /*10 minutes*/)

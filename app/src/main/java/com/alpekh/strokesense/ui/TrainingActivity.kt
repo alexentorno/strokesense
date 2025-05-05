@@ -133,6 +133,7 @@ class TrainingActivity : AppCompatActivity() {
         setupButtons()
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            println("Creating notification channel")
             startForegroundService(Intent(this, SensorService::class.java))
         } else {
             startService(Intent(this, SensorService::class.java))
