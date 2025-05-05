@@ -19,9 +19,9 @@ data class TrainingSession(
 
     val speedChart: List<Float>,
     val strokeRateChart: List<Float>,
-    val tiltChart: List<Float>,
+//    val tiltChart: List<Float>,
 
     val speedTimestamps: List<Long>,
     val strokeRateTimestamps: List<Long>,
-    val tiltTimestamps: List<Long>
+//    val tiltTimestamps: List<Long>
 )

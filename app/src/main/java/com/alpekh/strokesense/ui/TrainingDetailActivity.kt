@@ -38,12 +38,12 @@ class TrainingDetailActivity : AppCompatActivity() {
         val trainingDurationTextView = findViewById<TextView>(R.id.textViewDuration)
         val speedChart = findViewById<LineChart>(R.id.speedChart)
         val accelerationChart = findViewById<LineChart>(R.id.accelerationChart)
-        val tiltChart = findViewById<LineChart>(R.id.tiltChart)
+//        val tiltChart = findViewById<LineChart>(R.id.tiltChart)
 
         // Настройка графиков
         setupChart(speedChart)
         setupChart(accelerationChart)
-        setupChart(tiltChart)
+//        setupChart(tiltChart)
 
         viewModel.getTrainings { sessions ->
             val session = sessions.find { it.id == sessionId }
@@ -66,7 +66,7 @@ class TrainingDetailActivity : AppCompatActivity() {
                 // Заполнение графиков данными
                 setupChartData(speedChart, it.speedTimestamps, it.speedChart, "Speed (km/h)")
                 setupChartData(accelerationChart, it.strokeRateTimestamps, it.strokeRateChart, "Stroke Rate (strokes/min)")
-                setupChartData(tiltChart, it.tiltTimestamps, it.tiltChart, "Tilt Angle (°)")
+//                setupChartData(tiltChart, it.tiltTimestamps, it.tiltChart, "Tilt Angle (°)")
 
             }
         }

@@ -1,6 +1,8 @@
 package com.alpekh.strokesense.ui
 
 import android.Manifest
+import android.app.NotificationChannel
+import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -15,6 +17,7 @@ import androidx.core.content.ContextCompat
 import com.alpekh.strokesense.R
 import android.location.Location
 import android.location.LocationManager
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
@@ -24,6 +27,7 @@ import androidx.activity.addCallback
 import androidx.activity.viewModels
 import androidx.appcompat.app.AlertDialog
 import com.alpekh.strokesense.helpers.ChartManager
+import com.alpekh.strokesense.helpers.SensorService
 import com.alpekh.strokesense.model.TrainingSession
 import com.alpekh.strokesense.viewmodel.TrainingViewModel
 import com.github.mikephil.charting.charts.LineChart
@@ -129,6 +133,12 @@ class TrainingActivity : AppCompatActivity() {
         initViews()
         initSensors()
         setupButtons()
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            startForegroundService(Intent(this, SensorService::class.java))
+        } else {
+            startService(Intent(this, SensorService::class.java))
+        }
 
         if (checkLocationPermission()) {
             val locationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
@@ -240,9 +250,9 @@ class TrainingActivity : AppCompatActivity() {
             maxSpeed = maxSpeed, avgSpeed = avgSpeed, maxSPM = maxSPM, avgTilt = avgTiltAngle,
             speedChart = speedChartManager.getAllEntries().map { it.y },
             strokeRateChart = strokeRateChartManager.getAllEntries().map { it.y },
-            tiltChart = tiltChartManager.getAllEntries().map { it.y },
+//            tiltChart = tiltChartManager.getAllEntries().map { it.y },
             speedTimestamps = speedTimestamps, strokeRateTimestamps = strokeRateTimestamps,
-            tiltTimestamps = tiltTimestamps
+//            tiltTimestamps = tiltTimestamps
         ))
         finish()
     }
@@ -335,7 +345,7 @@ class TrainingActivity : AppCompatActivity() {
         val avgStrokeTime = if (strokesMade > 1) (strokeTimestamps.last() - strokeTimestamps.first()) / (strokesMade - 1).toDouble()
         else strokeWindow.toDouble()
         val strokeRate = 60_000 / avgStrokeTime
-        smoothedSPM = (strokeRate * 0.9) + (smoothedSPM * 0.1)
+        smoothedSPM = (strokeRate * 0.9) + (smoothedSPM * 0.1) // Smoothing factor 0.9
         return smoothedSPM.toFloat()
     }
 

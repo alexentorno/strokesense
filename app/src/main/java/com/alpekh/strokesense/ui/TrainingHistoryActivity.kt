@@ -40,7 +40,6 @@ class TrainingHistoryActivity : AppCompatActivity() {
         recyclerView.layoutManager = LinearLayoutManager(this)
         recyclerView.adapter = adapter
 
-        // Load trainings
         viewModel.getTrainings { sessions ->
             adapter.submitList(sessions)
             btnClearAll.isEnabled = sessions.isNotEmpty()
