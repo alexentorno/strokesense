@@ -1,7 +1,6 @@
 package com.alpekh.strokesense.viewmodel
 
 import android.app.Application
-import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.alpekh.strokesense.model.TrainingDetailsEntity
