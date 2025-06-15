@@ -14,9 +14,9 @@ import java.util.Date
 import java.util.Locale
 
 class TrainingAdapter(
-    private val onClick: (TrainingSession) -> Unit,
-    private val onDelete: (TrainingSession) -> Unit
-) : ListAdapter<TrainingSession, TrainingAdapter.TrainingViewHolder>(DIFF_CALLBACK) {
+    private val onClick: (TrainingSessionEntity) -> Unit,
+    private val onDelete: (TrainingSessionEntity) -> Unit
+) : ListAdapter<TrainingSessionEntity, TrainingAdapter.TrainingViewHolder>(DIFF_CALLBACK) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TrainingViewHolder {
         val view = LayoutInflater.from(parent.context)
@@ -30,7 +30,7 @@ class TrainingAdapter(
     }
 
     class TrainingViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
-        fun bind(session: TrainingSession, onClick: (TrainingSession) -> Unit, onDelete: (TrainingSession) -> Unit) {
+        fun bind(session: TrainingSessionEntity, onClick: (TrainingSessionEntity) -> Unit, onDelete: (TrainingSessionEntity) -> Unit) {
             itemView.findViewById<TextView>(R.id.textViewDate).text =
                 SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault()).format(Date(session.startTime))
 
@@ -43,11 +43,11 @@ class TrainingAdapter(
     }
 
     companion object {
-        private val DIFF_CALLBACK = object : DiffUtil.ItemCallback<TrainingSession>() {
-            override fun areItemsTheSame(oldItem: TrainingSession, newItem: TrainingSession) =
+        private val DIFF_CALLBACK = object : DiffUtil.ItemCallback<TrainingSessionEntity>() {
+            override fun areItemsTheSame(oldItem: TrainingSessionEntity, newItem: TrainingSessionEntity) =
                 oldItem.id == newItem.id
 
-            override fun areContentsTheSame(oldItem: TrainingSession, newItem: TrainingSession) =
+            override fun areContentsTheSame(oldItem: TrainingSessionEntity, newItem: TrainingSessionEntity) =
                 oldItem == newItem
         }
     }

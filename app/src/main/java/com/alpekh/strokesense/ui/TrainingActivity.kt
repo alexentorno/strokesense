@@ -26,7 +26,8 @@ import androidx.activity.viewModels
 import androidx.appcompat.app.AlertDialog
 import com.alpekh.strokesense.helpers.ChartManager
 import com.alpekh.strokesense.helpers.SensorService
-import com.alpekh.strokesense.model.TrainingSession
+import com.alpekh.strokesense.model.TrainingDetailsEntity
+import com.alpekh.strokesense.model.TrainingSessionEntity
 import com.alpekh.strokesense.viewmodel.TrainingViewModel
 import com.github.mikephil.charting.charts.LineChart
 import com.google.android.gms.location.FusedLocationProviderClient
@@ -244,15 +245,27 @@ class TrainingActivity : AppCompatActivity() {
 
     private fun stopTraining() {
         stopTimer()
-        viewModel.saveTraining(TrainingSession(
-            startTime = startTime, endTime = trainingDuration, distance = totalDistance,
-            maxSpeed = maxSpeed, avgSpeed = avgSpeed, maxSPM = maxSPM, avgTilt = avgTiltAngle,
+        val sessionEntity = TrainingSessionEntity(
+            startTime = startTime,
+            endTime = trainingDuration,
+            distance = totalDistance,
+            maxSpeed = maxSpeed,
+            avgSpeed = avgSpeed,
+            maxSPM = maxSPM,
+            avgTilt = avgTiltAngle
+        )
+
+        val detailsEntity = TrainingDetailsEntity(
+            sessionId = 0, // будет заменён в DAO
             speedChart = speedChartManager.getAllEntries().map { it.y },
             strokeRateChart = strokeRateChartManager.getAllEntries().map { it.y },
-//            tiltChart = tiltChartManager.getAllEntries().map { it.y },
-            speedTimestamps = speedTimestamps, strokeRateTimestamps = strokeRateTimestamps,
-//            tiltTimestamps = tiltTimestamps
-        ))
+            tiltChart = tiltChartManager.getAllEntries().map { it.y },
+            speedTimestamps = speedTimestamps,
+            strokeRateTimestamps = strokeRateTimestamps,
+            tiltTimestamps = tiltTimestamps
+        )
+
+        viewModel.saveTraining(sessionEntity, detailsEntity)
         finish()
     }
 

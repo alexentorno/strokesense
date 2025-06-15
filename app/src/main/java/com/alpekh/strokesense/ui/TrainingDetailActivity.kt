@@ -38,40 +38,62 @@ class TrainingDetailActivity : AppCompatActivity() {
         val trainingDurationTextView = findViewById<TextView>(R.id.textViewDuration)
         val speedChart = findViewById<LineChart>(R.id.speedChart)
         val accelerationChart = findViewById<LineChart>(R.id.accelerationChart)
-//        val tiltChart = findViewById<LineChart>(R.id.tiltChart)
+        val tiltChart = findViewById<LineChart>(R.id.tiltChart)
 
         // Настройка графиков
         setupChart(speedChart)
         setupChart(accelerationChart)
-//        setupChart(tiltChart)
+        setupChart(tiltChart)
 
         viewModel.getTrainings { sessions ->
             val session = sessions.find { it.id == sessionId }
-            session?.let {
-                val seconds = (it.endTime / 1000) % 60
-                val minutes = (it.endTime / (1000 * 60)) % 60
-                val hours = (it.endTime / (1000 * 60 * 60))
-                val formattedDuration = String.format(Locale.getDefault(), "%02d:%02d:%02d", hours, minutes, seconds)
+            session?.let { sessionEntity ->
+                viewModel.getTrainingDetails(sessionId) { details ->
+                    if (details != null) {
+                        val seconds = (sessionEntity.endTime / 1000) % 60
+                        val minutes = (sessionEntity.endTime / (1000 * 60)) % 60
+                        val hours = (sessionEntity.endTime / (1000 * 60 * 60))
+                        val formattedDuration =
+                            String.format(Locale.getDefault(), "%02d:%02d:%02d", hours, minutes, seconds)
 
-                trainingDurationTextView.text = getString(R.string.training_duration, formattedDuration)
+                        trainingDurationTextView.text =
+                            getString(R.string.training_duration, formattedDuration)
 
-                findViewById<TextView>(R.id.textViewDistance).text =
-                    getString(R.string.distance_text, session.distance / 1000)
+                        findViewById<TextView>(R.id.textViewDistance).text =
+                            getString(R.string.distance_text, sessionEntity.distance / 1000)
 
-                findViewById<TextView>(R.id.textViewMaxSpeed).text = getString(R.string.max_speed_text, it.maxSpeed)
-                findViewById<TextView>(R.id.textViewAvgSpeed).text = getString(R.string.avg_speed_text, it.avgSpeed)
-                findViewById<TextView>(R.id.textViewSPM).text = getString(R.string.max_stroke_rate_text, it.maxSPM)
-                findViewById<TextView>(R.id.textViewTilt).text = getString(R.string.avg_tilt_text, it.avgTilt)
+                        findViewById<TextView>(R.id.textViewMaxSpeed).text =
+                            getString(R.string.max_speed_text, sessionEntity.maxSpeed)
+                        findViewById<TextView>(R.id.textViewAvgSpeed).text =
+                            getString(R.string.avg_speed_text, sessionEntity.avgSpeed)
+                        findViewById<TextView>(R.id.textViewSPM).text =
+                            getString(R.string.max_stroke_rate_text, sessionEntity.maxSPM)
+                        findViewById<TextView>(R.id.textViewTilt).text =
+                            getString(R.string.avg_tilt_text, sessionEntity.avgTilt)
 
-                // Заполнение графиков данными
-                setupChartData(speedChart, it.speedTimestamps, it.speedChart, "Speed (km/h)")
-                setupChartData(accelerationChart, it.strokeRateTimestamps, it.strokeRateChart, "Stroke Rate (strokes/min)")
-//                setupChartData(tiltChart, it.tiltTimestamps, it.tiltChart, "Tilt Angle (°)")
-
+                        // Отрисовываем графики
+                        setupChartData(
+                            speedChart,
+                            details.speedTimestamps,
+                            details.speedChart,
+                            "Speed (km/h)"
+                        )
+                        setupChartData(
+                            accelerationChart,
+                            details.strokeRateTimestamps,
+                            details.strokeRateChart,
+                            "Stroke Rate (strokes/min)"
+                        )
+                        setupChartData(
+                            tiltChart,
+                            details.tiltTimestamps,
+                            details.tiltChart,
+                            "Tilt Angle (°)"
+                        )
+                    }
+                }
             }
         }
-
-
     }
 
     private fun setupChart(chart: LineChart) {

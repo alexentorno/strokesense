@@ -10,7 +10,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.alpekh.strokesense.R
 import com.alpekh.strokesense.model.TrainingAdapter
-import com.alpekh.strokesense.model.TrainingSession
+import com.alpekh.strokesense.model.TrainingSessionEntity
 import com.alpekh.strokesense.viewmodel.TrainingViewModel
 
 class TrainingHistoryActivity : AppCompatActivity() {
@@ -51,7 +51,7 @@ class TrainingHistoryActivity : AppCompatActivity() {
         }
     }
 
-    private fun showDeleteConfirmationDialog(session: TrainingSession) {
+    private fun showDeleteConfirmationDialog(session: TrainingSessionEntity) {
         AlertDialog.Builder(this)
             .setTitle(getString(R.string.delete_training))
             .setMessage(getString(R.string.confirm_delete_training))
@@ -83,7 +83,7 @@ class TrainingHistoryActivity : AppCompatActivity() {
             .show()
     }
 
-    private fun updateClearAllButtonState(sessions: List<TrainingSession>) {
+    private fun updateClearAllButtonState(sessions: List<TrainingSessionEntity>) {
         findViewById<Button>(R.id.btnClearAll).isEnabled = sessions.isNotEmpty()
     }
 }
