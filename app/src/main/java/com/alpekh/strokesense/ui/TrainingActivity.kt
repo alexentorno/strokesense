@@ -11,7 +11,6 @@ import android.hardware.SensorManager
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
-import androidx.core.content.ContextCompat
 import com.alpekh.strokesense.R
 import android.location.Location
 import android.location.LocationManager
@@ -140,15 +139,14 @@ class TrainingActivity : AppCompatActivity() {
             startService(Intent(this, SensorService::class.java))
         }
 
-        if (checkLocationPermission()) {
-            val locationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
-            if (!locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
-                showGpsDisabledAlert()
-            } else {
-                startTraining()
-                startTracking()
-            }
+        val locationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
+        if (!locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+            showGpsDisabledAlert()
+        } else {
+            startTraining()
+            startTracking()
         }
+
     }
 
     private fun initViews() {
@@ -256,7 +254,7 @@ class TrainingActivity : AppCompatActivity() {
         )
 
         val detailsEntity = TrainingDetailsEntity(
-            sessionId = 0, // будет заменён в DAO
+            sessionId = 0, // This will be set by the database
             speedChart = speedChartManager.getAllEntries().map { it.y },
             strokeRateChart = strokeRateChartManager.getAllEntries().map { it.y },
             tiltChart = tiltChartManager.getAllEntries().map { it.y },
@@ -383,10 +381,10 @@ class TrainingActivity : AppCompatActivity() {
         return round(this * multiplier) / multiplier
     }
 
-    private fun checkLocationPermission(): Boolean {
-        return if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) true
-        else ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.ACCESS_FINE_LOCATION), 1).let { false }
-    }
+//    private fun checkLocationPermission(): Boolean {
+//        return if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) true
+//        else ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.ACCESS_FINE_LOCATION), 1).let { false }
+//    }
 
     private fun showGpsDisabledAlert() {
         AlertDialog.Builder(this).setTitle("GPS turned off")
